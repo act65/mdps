@@ -70,6 +70,26 @@ def generate_pvi_vs_vi(mdp, init):
     plt.savefig('traj-figs/vi-vs-pvi.png', dpi=300)
     plt.close()
 
+def generate_cvi(mdp, init):
+    print('\nRunning PVI vs VI')
+    lr = 0.01
+
+    # vi
+    init = np.complex(init, np.zeros_like(init))
+    qs = utils.solve(complex_value_iteration(mdp, lr), init)
+    vs = np.vstack([np.max(q, axis=1) for q in qs])
+    n = vs.shape[0]
+    plt.scatter(vs[0, 0], vs[0, 1], c='g', label='vi')
+    plt.scatter(vs[1:-1, 0], vs[1:-1, 1], c=range(n-2), cmap='spring', s=10)
+    plt.scatter(vs[-1, 0], vs[-1, 1], c='g', marker='x')
+
+    plt.title('VI: {}, PVI {}'.format(n, m))
+    plt.legend()
+    # plt.colorbar()
+
+    plt.savefig('traj-figs/vi-vs-pvi.png', dpi=300)
+    plt.close()
+
 
 ###################################################
 

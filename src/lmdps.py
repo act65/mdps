@@ -5,6 +5,8 @@ import numpy.random as rnd
 import jax.numpy as np
 from jax import grad, jit
 
+import src.utils as utils
+
 def rnd_mdp(n_states, n_actions):
     P = rnd.random((n_states, n_states, n_actions))
     P = P/P.sum(0)
@@ -65,10 +67,10 @@ def mdp_encoder(P, r):
 
         # p should be a distribution
         # QUESTION where does p get normalised!?!?
-        err = np.isclose(p.sum(0), np.ones(p.shape[0]))
+        err = np.isclose(p.sum(0), np.ones(p.shape[0]), 1e-6)
         if not err.any():
             print(err)
-            raise SystemExit
+            raise ValueError('p is not normalised')
 
         return p, np.array([q])
 
@@ -102,7 +104,7 @@ def lmdp_solver(p, q, discount):
     # Evaluate
     # Solve z = QPz
     Q = np.diag(np.squeeze(np.exp(q)))
-    z = solve(np.dot(Q, p), a=discount)
+    z = solve_matrix(np.dot(Q, p), a=discount)
 
     v = np.log(z)
 
@@ -114,37 +116,14 @@ def lmdp_solver(p, q, discount):
 
     return u, v
 
-def solve(A, a):
+def solve_matrix(A, a):
     # Solve x = Ax^a
     # huh, this is pretty consistent.
     # approx 1:100?
     fn = lambda x: np.dot(A, x**a)
     init = np.ones((A.shape[-1], 1))
-    z = dynamical_system_solver(fn, init)
-    return z.squeeze()
-
-def dynamical_system_solver(fn, init):
-    xs = [init]
-    while not converged(xs):
-        xs.append(fn(xs[-1]))
-        print('\rStep: {} Diff:{:.4f}'.format(len(xs), np.linalg.norm(xs[-1] - xs[-2])), end='', flush=True)
-    return xs[-1]
-
-def converged(xs):
-    if len(xs) <= 1:
-        return False
-    elif len(xs) > 1000 and np.isclose(xs[-1], xs[-2], atol=1e-3).all():
-        print('\nClose enough...')
-        return True
-    elif len(xs) > 10000:
-        raise ValueError('not converged')
-    elif np.isnan(xs[-1]).any():
-        raise ValueError('Nan')
-    else:
-        return np.isclose(xs[-1], xs[-2], atol=1e-8).all()
-
-def softmax(x, axis=1):
-    return np.exp(x)/np.sum(np.exp(x), axis=axis, keepdims=True)
+    z = utils.solve(fn, init)
+    return z[-1].squeeze()
 
 def lmdp_decoder(u, P, lr=10):
     """
@@ -161,7 +140,7 @@ def lmdp_decoder(u, P, lr=10):
     # 0 = sum_a log(P[a]) + log(pi[a]) - M
 
     def loss(pi_logits):
-        pi = softmax(pi_logits)
+        pi = utils.softmax(pi_logits)
         # P_pi(s'|s) = \sum_a pi(a|s)p(s'|s, a)
         P_pi = np.einsum('ijk,jk->ij', P, pi)
         return np.sum(np.multiply(u, np.log(u/P_pi)))  # KL
@@ -171,9 +150,9 @@ def lmdp_decoder(u, P, lr=10):
         return w - lr * dLdw(w)
 
     init = rnd.standard_normal((P.shape[0], P.shape[-1]))
-    pi_star_logits = dynamical_system_solver(update_fn, init)
+    pi_star_logits = utils.solve(update_fn, init)[-1]
 
-    return softmax(pi_star_logits)
+    return utils.softmax(pi_star_logits)
 
 def option_transition_fn(P, k):
     n_states = P.shape[0]
@@ -196,7 +175,7 @@ def lmdp_option_decoder(u, P, lr=1, k=5):
     P_options = option_transition_fn(P, k)
 
     def loss(option_logits):
-        options = softmax(option_logits)
+        options = utils.softmax(option_logits)
         # P_pi(s'|s) = \sum_w pi(w|s)p(s'|s, w)
         P_pi = np.einsum('ijk,jk->ij', P_options, options)
         return np.sum(np.multiply(u, np.log(u/P_pi)))  # KL
@@ -208,6 +187,6 @@ def lmdp_option_decoder(u, P, lr=1, k=5):
     n_options = sum([n_actions**(i+1) for i in range(k)])
     print('N options: {}'.format(n_options))
     init = rnd.standard_normal((P.shape[0], n_options))
-    pi_star_logits = dynamical_system_solver(update_fn, init)
+    pi_star_logits = utils.solve(update_fn, init)[-1]
 
-    return softmax(pi_star_logits)
+    return utils.softmax(pi_star_logits)
