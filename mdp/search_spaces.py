@@ -9,7 +9,7 @@ from jax import grad, jit, jacrev, vmap
 
 import numpy.random as rnd
 
-import src.utils as utils
+import mdp.utils as utils
 
 #############################
 """

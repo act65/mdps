@@ -6,8 +6,8 @@ import numpy.random as rnd
 
 import matplotlib.pyplot as plt
 
-import src.utils as utils
-from src.density import *
+import mdp.utils as utils
+from mdp.density import *
 
 def generate_polytope_densities():
     n_states, n_actions = 2, 2

@@ -5,7 +5,7 @@ import numpy.random as rnd
 import jax.numpy as np
 from jax import grad, jit
 
-import src.utils as utils
+import mdp.utils as utils
 
 def rnd_mdp(n_states, n_actions):
     P = rnd.random((n_states, n_states, n_actions))

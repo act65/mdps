@@ -3,8 +3,8 @@ import numpy
 import numpy.random as rnd
 from jax import grad, jit
 from numpy import linalg
-import src.utils as utils
-import src.search_spaces as search_spaces
+import mdp.utils as utils
+import mdp.search_spaces as search_spaces
 
 """
 Related??? https://arxiv.org/pdf/1901.11530.pdf

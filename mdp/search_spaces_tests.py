@@ -1,6 +1,6 @@
 import numpy as np
-import src.utils as utils
-from src.search_spaces import *
+import mdp.utils as utils
+from mdp.search_spaces import *
 
 def clip_solver_traj(traj):
     if np.isclose(traj[-1], traj[-2], 1e-8).all():

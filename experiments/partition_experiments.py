@@ -2,8 +2,8 @@ import numpy as np
 import numpy.random as rnd
 import matplotlib.pyplot as plt
 
-import src.utils as utils
-import src.search_spaces as ss
+import mdp.utils as utils
+import mdp.search_spaces as ss
 
 # TODO could also do something similar with value iteration or PG?!?
 # what about PI under noise?

@@ -2,7 +2,7 @@ import jax.numpy as np
 import numpy.random as rnd
 
 from entropy import *
-import src.utils as utils
+import mdp.utils as utils
 
 class TestDensity():
     def __init__(self):

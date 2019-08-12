@@ -3,9 +3,9 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-import src.graph as graph
-import src.utils as utils
-import src.search_spaces as search_spaces
+import mdp.graph as graph
+import mdp.utils as utils
+import mdp.search_spaces as search_spaces
 
 def graph_PI():
     n_states = 6

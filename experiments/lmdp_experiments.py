@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import src.lmdps as lmdps
-import src.utils as utils
-import src.search_spaces as search_spaces
+import mdp.lmdps as lmdps
+import mdp.utils as utils
+import mdp.search_spaces as search_spaces
 
 def onehot(x, n):
     return np.eye(n)[x]

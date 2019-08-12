@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import src.utils as utils
+import mdp.utils as utils
 
 def hyperbolic_polytope():
         # https://arxiv.org/abs/1902.06865

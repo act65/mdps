@@ -1,6 +1,6 @@
 import numpy as np
-import src.graph as graph
-import src.utils as utils
+import mdp.graph as graph
+import mdp.utils as utils
 import networkx as nx
 import matplotlib.pyplot as plt
 
