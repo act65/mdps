@@ -13,6 +13,10 @@ def entropy(p):
 def softmax(x, axis=-1):
     return np.exp(x)/np.sum(np.exp(x), axis=-1, keepdims=True)
 
+def normalize(x):
+    mags = np.linalg.norm(x, axis=1, keepdims=True)
+    return x/mags
+
 MDP = collections.namedtuple('mdp', ['S', 'A', 'P', 'r', 'discount', 'd0'])
 
 def build_random_mdp(n_states, n_actions, discount):
@@ -35,7 +39,7 @@ def get_deterministic_policies(n_states, n_actions):
     pis = list(itertools.product(*[simplicies for _ in range(n_states)]))
     return [np.stack(p) for p in pis]
 
-# @jit
+@jit
 def polytope(P, r, discount, pis):
     print('n pis:{}'.format(len(pis)))
     def V(pi):

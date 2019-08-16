@@ -67,7 +67,7 @@ def mdp_encoder(P, r):
 
         # p should be a distribution
         # QUESTION where does p get normalised!?!?
-        err = np.isclose(p.sum(0), np.ones(p.shape[0]), 1e-6)
+        err = np.isclose(p.sum(0), np.ones(p.shape[0]), 1e-3)
         if not err.any():
             print(err)
             raise ValueError('p is not normalised')
@@ -86,6 +86,29 @@ def KL(P, Q):
 def CE(P, Q):
     return np.sum(P*np.log(Q+1e-8))
 
+@jit
+def linear_bellman_operator(p, q, z, discount):
+    Q = np.diag(np.squeeze(np.exp(q)))
+    return np.dot(np.dot(Q, p), z**discount)
+
+@jit
+def linear_value_functional(p, q, u, discount):
+    """
+    V = r_{\pi} + \gamma P_{\pi} V
+      = (I-\gamma P_{\pi})^{-1}(q - KL(u || p))
+
+    Args:
+        p (np.ndarray): [n_states x n_states ]
+        q (np.ndarray): [n_states x 1]
+        u (np.ndarray): [n_states x n_states]
+        discount (float): the temporal discount value
+    """
+    n = p.shape[0]
+
+    r_lmdp = q + np.sum(u*np.log(p/u), axis=0)
+
+    vs = np.dot(np.linalg.inv(np.eye(n) - discount*u), r_lmdp)
+    return vs
 
 def lmdp_solver(p, q, discount):
     """
@@ -103,27 +126,19 @@ def lmdp_solver(p, q, discount):
 
     # Evaluate
     # Solve z = QPz
-    Q = np.diag(np.squeeze(np.exp(q)))
-    z = solve_matrix(np.dot(Q, p), a=discount)
+    def lmdp_bellman_update(z):
+        return linear_bellman_operator(p, q, z, discount)
 
+    z = utils.solve(lmdp_bellman_update, np.ones((p.shape[-1], 1)))[-1]
     v = np.log(z)
 
     # Calculate the optimal control
     # G(x) = sum_x' p(x' | x) z(x')
-    G = np.einsum('ij,i->j', p, z)
+    G = np.einsum('ij,il->j', p, z)
     # u*(x' | x) = p(x' | x) z(x') / G[z](x)
     u = p * z[:, np.newaxis] / G[np.newaxis, :]
 
     return u, v
-
-def solve_matrix(A, a):
-    # Solve x = Ax^a
-    # huh, this is pretty consistent.
-    # approx 1:100?
-    fn = lambda x: np.dot(A, x**a)
-    init = np.ones((A.shape[-1], 1))
-    z = utils.solve(fn, init)
-    return z[-1].squeeze()
 
 def lmdp_decoder(u, P, lr=10):
     """

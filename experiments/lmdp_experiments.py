@@ -79,6 +79,43 @@ def compare_acc():
 def lmdp_dynamics():
     pass
 
+def lmdp_field():
+    """
+    For each policy.
+    Calculate its dynamics, P_pi.
+    Estimate the value via the LMDP.
+    Plot difference under linearTD operator.
+    """
+    n_states, n_actions = 2, 2
+    pis = utils.gen_grid_policies(7)
+
+    mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
+
+    p, q = lmdps.mdp_encoder(mdp.P, mdp.r)
+
+    vs = []
+    dvs = []
+    for pi in pis:
+        u = np.einsum('ijk,jk->ij', mdp.P, pi)
+        v = lmdps.linear_value_functional(p, q, u, mdp.discount)
+        z = np.exp(v)
+        Tz = lmdps.linear_bellman_operator(p, q, z, mdp.discount)
+        dv = np.log(Tz) - np.log(z)
+
+        vs.append(v)
+        dvs.append(dv)
+
+    dvs = np.vstack(dvs)
+    vs = np.vstack(vs)
+
+    normed_dvs = utils.normalize(dvs)
+
+    plt.title('The linearised TD operator')
+    plt.quiver(vs[:, 0], vs[:, 1], normed_dvs[:, 0], normed_dvs[:,1], np.linalg.norm(dvs, axis=1))
+    plt.savefig('figs/LTD_op.png')
+    plt.show()
+
 if __name__ == "__main__":
     # compare_mdp_lmdp()
-    compare_acc()
+    # compare_acc()
+    lmdp_field()
