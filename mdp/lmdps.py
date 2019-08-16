@@ -7,13 +7,6 @@ from jax import grad, jit
 
 import mdp.utils as utils
 
-def rnd_mdp(n_states, n_actions):
-    P = rnd.random((n_states, n_states, n_actions))
-    P = P/P.sum(0)
-
-    r = rnd.random((n_states, n_actions))
-    return P, r
-
 def rnd_lmdp(n_states, n_actions):
     p = rnd.random((n_states, n_states))
     p = p/p.sum(0)
@@ -88,14 +81,16 @@ def CE(P, Q):
 
 @jit
 def linear_bellman_operator(p, q, z, discount):
+    """
+    z(s) = e^q E_{s' \sim p(. | s)} z(s')^{\gamma}
+    """
     Q = np.diag(np.squeeze(np.exp(q)))
     return np.dot(np.dot(Q, p), z**discount)
 
 @jit
 def linear_value_functional(p, q, u, discount):
     """
-    V = r_{\pi} + \gamma P_{\pi} V
-      = (I-\gamma P_{\pi})^{-1}(q - KL(u || p))
+    V(s) = q(s) - KL(u || p) + \gamma P_{s' \sim u} V(s')
 
     Args:
         p (np.ndarray): [n_states x n_states ]

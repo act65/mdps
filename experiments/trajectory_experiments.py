@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import copy
 import functools
 
-from search_spaces import *
+from mdp.utils import *
+from mdp.search_spaces import *
 
 def clipped_stack(x, n=1000):
     m = len(x)
@@ -37,7 +38,7 @@ def generate_vi_sgd_vs_mom(mdp, init, lr=0.01):
     plt.title('SGD: {}, Mom {}, Lr: {}'.format(n, m, lr))
     plt.legend()
 
-    plt.savefig('traj-figs/vi_sgd-vs-vi_mom_{}.png'.format(lr))
+    plt.savefig('figs/vi_sgd-vs-vi_mom_{}.png'.format(lr))
     plt.close()
 
 
@@ -67,7 +68,7 @@ def generate_pvi_vs_vi(mdp, init):
     plt.legend()
     # plt.colorbar()
 
-    plt.savefig('traj-figs/vi-vs-pvi.png', dpi=300)
+    plt.savefig('figs/vi-vs-pvi.png', dpi=300)
     plt.close()
 
 def generate_cvi(mdp, init):
@@ -87,50 +88,13 @@ def generate_cvi(mdp, init):
     plt.legend()
     # plt.colorbar()
 
-    plt.savefig('traj-figs/vi-vs-pvi.png', dpi=300)
+    plt.savefig('figs/vi-vs-pvi.png', dpi=300)
     plt.close()
 
-
-###################################################
-
-
-
-def generate_avi_vs_vi(mdp):
-    print('\nRunning AVI vs VI')
-    lr = 0.1
-
-    # vi
-    init = rnd.standard_normal((mdp.S, mdp.A))
-    qs = utils.solve(value_iteration(mdp, lr), init)
-    vs = np.vstack([np.max(q, axis=1) for q in qs])
-
-    n = vs.shape[0]
-    plt.scatter(vs[0, 0], vs[0, 1], c='g', label='vi')
-    plt.scatter(vs[:, 0], vs[:, 1], c=range(n), cmap='spring', s=10)
-
-    # avi
-    # K = np.eye(n_states)
-    K = rnd.standard_normal((mdp.S))
-    K = (K + K.T)/2 + 1  # this can accelerate learning. but also lead to divergence. want to explore this more!!!
-    d = rnd.random(mdp.S)
-    D = np.diag(d/d.sum())  # this can change the optima!!
-    # D = np.eye(n_states)
-    qs = utils.solve(adjusted_value_iteration(mdp, lr, D, K), init)
-    vs = np.vstack([np.max(q, axis=1) for q in qs])
-
-    m = vs.shape[0]
-    plt.scatter(vs[0, 0], vs[0, 1], c='r', label='avi')
-    plt.scatter(vs[:, 0], vs[:, 1], c=range(m), cmap='autumn', s=10)
-    plt.title('VI: {}, Avi {}'.format(n, m))
-    plt.legend()
-    plt.colorbar()
-
-    plt.savefig('traj-figs/avi-vs-vi.png')
-    plt.close()
 
 def generate_PG_vs_VI(mdp, init):
     print('\nRunning PG vs VI')
-    lr = 0.1
+    lr = 0.001
 
     # PG
     logits = utils.solve(policy_gradient_iteration_logits(mdp, lr), init)
@@ -153,7 +117,7 @@ def generate_PG_vs_VI(mdp, init):
     plt.title('PG: {}, VI {}'.format(n, m))
     # plt.colorbar()
 
-    plt.savefig('traj-figs/pg-vs-vi.png')
+    plt.savefig('figs/pg-vs-vi.png')
     plt.close()
 
 def generate_PG_vs_PPG(mdp, init):
@@ -183,7 +147,7 @@ def generate_PG_vs_PPG(mdp, init):
     plt.legend()
     # plt.colorbar()
 
-    plt.savefig('traj-figs/pg-vs-ppg.png', dpi=300)
+    plt.savefig('figs/pg-vs-ppg.png', dpi=300)
     plt.close()
 
 def generate_mppg_vs_mpg(mdp, init):
@@ -215,7 +179,7 @@ def generate_mppg_vs_mpg(mdp, init):
     plt.legend()
     # plt.colorbar()
 
-    plt.savefig('traj-figs/mpg-vs-mppg.png', dpi=300)
+    plt.savefig('figs/mpg-vs-mppg.png', dpi=300)
     plt.close()
 
 def generate_mpvi_vs_mvi(mdp, init):
@@ -247,7 +211,7 @@ def generate_mpvi_vs_mvi(mdp, init):
     plt.title('MVI: {}, MPVI {}'.format(n, m))
     plt.legend()
 
-    plt.savefig('traj-figs/mpvi-vs-pvi.png')
+    plt.savefig('figs/mpvi-vs-pvi.png')
     plt.close()
 
 
@@ -273,7 +237,7 @@ def generate_mpvi_vs_mvi(mdp, init):
 #     m = vs.shape[0]
 #     plt.scatter(vs[:, 0], vs[:, 1], c=range(m), cmap='spring', label='mpvi')
 #
-#     plt.savefig('traj-figs/mpvi-inits.png')
+#     plt.savefig('figs/mpvi-inits.png')
 #     plt.close()
 #     """
 #     Hmm. I thought this would change the dynamics.
@@ -311,34 +275,26 @@ def generate_mpvi_vs_mvi(mdp, init):
 #     # plt.show()
 
 
-# pg vs pi
-
-# def argumentparser():
-#     parser = argparse.ArgumentParser(description='Visualise losses and returns')
-#     parser.add_argument('--logdir', type=str, default='logs',
-#                         help='location to save logs')
-#     return parser.parse_args()
-
-# def plot(vs1, vs2, save_path):
-
-
 if __name__ == '__main__':
+    print('start')
     n_states, n_actions = 2, 2
     mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
-    pis = utils.gen_grid_policies(41)
+
+    print('\nBuilding polytope')
+    pis = utils.gen_grid_policies(11)
     vs = utils.polytope(mdp.P, mdp.r, mdp.discount, pis)
     init = rnd.standard_normal((mdp.S, mdp.A))
 
     experiments = [
         # functools.partial(generate_vi_sgd_vs_mom, lr=a) for a in np.logspace(-5, 0, 6)
         #
-        generate_vi_sgd_vs_mom,
-        generate_pvi_vs_vi,
+        # generate_vi_sgd_vs_mom,
+        # generate_pvi_vs_vi,
         #
         # generate_avi_vs_vi,
         #
         # generate_PG_vs_VI,
-        # generate_PG_vs_PPG,
+        generate_PG_vs_PPG,
         #
         # generate_mpvi_vs_mvi,
         # generate_mppg_vs_mpg,
@@ -346,6 +302,7 @@ if __name__ == '__main__':
         # generate_mpvi_inits,
     ]
 
+    print('\nRunning experiments')
     for exp in experiments:
         plt.figure(figsize=(16,16))
         plt.scatter(vs[:, 0], vs[:, 1], s=10, alpha=0.75)

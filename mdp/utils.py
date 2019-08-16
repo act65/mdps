@@ -1,14 +1,17 @@
+import collections
+import itertools
+
 import jax.numpy as np
 from jax import jit
 import numpy.random as rnd
-import collections
-import itertools
+
+import mdp.search_spaces as search_spaces
 
 def onehot(x, N):
     return np.eye(N)[x]
 
 def entropy(p):
-    return -np.sum(np.log(p) * p)
+    return -np.sum(np.log(p+1e-8) * p)
 
 def softmax(x, axis=-1):
     return np.exp(x)/np.sum(np.exp(x), axis=-1, keepdims=True)
@@ -105,21 +108,24 @@ def isclose(x, y, atol=1e-8):
         return np.isclose(x, y, atol=atol).all()
     elif isinstance(x, list):
         # return all(np.isclose(x[0], y[0], atol=1e-03).all() for i in range(len(x)))
-        return np.isclose(build(x), build(y), atol=atol).all()
+        return np.isclose(search_spaces.build(x), search_spaces.build(y), atol=atol).all()
     elif isinstance(x, tuple) and isinstance(x[0], np.ndarray):
         return np.isclose(x[0], y[0], atol=atol).all()
     elif isinstance(x, tuple) and isinstance(x[0], list):
-        return np.isclose(build(x[0]), build(y[0]), atol=atol).all()
+        return np.isclose(search_spaces.build(x[0]), search_spaces.build(y[0]), atol=atol).all()
     else:
         raise ValueError('wrong format')
 
 def converged(l):
     if len(l)>1:
-        if len(l)>5000 and isclose(l[-1], l[-2], 1e-3):
+        if len(l)>5000 and isclose(l[-1], l[-2], 1e-6):
             return True
-        elif isclose(l[-1], l[-2]):
+        if len(l)>10000 and isclose(l[-1], l[-2], 1e-4):
             return True
-        elif len(l)>10000:
+        elif isclose(l[-1], l[-2], 1e-8):
+            return True
+        elif len(l)>20000:
+            print(l[-5:-1])
             raise ValueError('not converged...')
         else:
             False
@@ -130,7 +136,7 @@ def solve(update_fn, init):
     xs = [init]
     x = init
     while not converged(xs):
-        print('\rStep: {}'.format(len(xs)), end='', flush=True)
         x = update_fn(x)
         xs.append(x)
+        print('\rStep: {}'.format(len(xs)), end='', flush=True)
     return xs
