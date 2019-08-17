@@ -121,15 +121,14 @@ def lmdp_solver(p, q, discount):
 
     # Evaluate
     # Solve z = QPz
-    def lmdp_bellman_update(z):
-        return linear_bellman_operator(p, q, z, discount)
-
-    z = utils.solve(lmdp_bellman_update, np.ones((p.shape[-1], 1)))[-1]
+    init = np.ones((p.shape[-1], 1))
+    update_fn = lambda z: linear_bellman_operator(p, q, z, discount)
+    z = utils.solve(update_fn, init)[-1].squeeze()
     v = np.log(z)
 
     # Calculate the optimal control
     # G(x) = sum_x' p(x' | x) z(x')
-    G = np.einsum('ij,il->j', p, z)
+    G = np.einsum('ij,i->j', p, z)
     # u*(x' | x) = p(x' | x) z(x') / G[z](x)
     u = p * z[:, np.newaxis] / G[np.newaxis, :]
 
