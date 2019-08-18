@@ -90,7 +90,7 @@ def lmdp_field():
     Plot difference under linearTD operator.
     """
     n_states, n_actions = 2, 2
-    pis = utils.gen_grid_policies(7)
+    pis = utils.gen_grid_policies(11)
 
     mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
 
@@ -113,12 +113,27 @@ def lmdp_field():
 
     normed_dvs = utils.normalize(dvs)
 
-    plt.title('The linearised TD operator')
+    plt.figure(figsize=(16,16))
+    plt.subplot(1,2,1)
+    plt.title('Linearised Bellman operator')
     plt.quiver(vs[:, 0], vs[:, 1], normed_dvs[:, 0], normed_dvs[:,1], np.linalg.norm(dvs, axis=1))
-    plt.savefig('figs/LTD_op.png')
+
+    # plot bellman
+    Vs = utils.polytope(mdp.P, mdp.r, mdp.discount, pis)
+    diff_op = lambda V: utils.bellman_optimality_operator(mdp.P, mdp.r, np.expand_dims(V, 1), mdp.discount) - np.expand_dims(V, 1)
+    dVs = np.stack([np.max(diff_op(V), axis=1) for V in Vs])
+
+    normed_dVs = utils.normalize(dVs)
+
+    plt.subplot(1,2,2)
+    plt.title('Bellman operator')
+    plt.quiver(Vs[:, 0], Vs[:, 1], normed_dVs[:, 0], normed_dVs[:,1], np.linalg.norm(dVs, axis=1))
+
+    # plt.savefig('figs/LBO_BO.png')
     plt.show()
 
+
 if __name__ == "__main__":
-    compare_mdp_lmdp()
+    # compare_mdp_lmdp()
     # compare_acc()
-    # lmdp_field()
+    lmdp_field()

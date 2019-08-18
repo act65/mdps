@@ -4,7 +4,8 @@ import numpy.random as rnd
 
 import matplotlib.pyplot as plt
 
-from utils import *
+from mdp.utils import *
+from mdp.search_spaces import *
 
 def vi_vector_field(mdp, qs, lr):
     update_fn = value_iteration(mdp, lr)
@@ -92,9 +93,6 @@ def cts_lr_fields(mdp):
         # plt.title('Pamameterised VI')
     # plt.savefig('figs/lr_limit_{:.3f}.png'.format(lr))
     plt.savefig('traj-figs/lr_limit_pvi.png', dpi=300)
-
-
-
 
 def lr_field_diffs(mdp):
     """

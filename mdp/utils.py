@@ -92,6 +92,9 @@ def bellman_optimality_operator(P, r, Q, discount):
     Returns:
         (np.ndarray): [n_states, n_actions]
     """
+    if len(Q.shape) == 1:
+        Q = np.expand_dims(Q, 1)
+
     if Q.shape[1] == 1:  # Q == V
         # Q(s, a) =  r(s, a) + \gamma E_{s'~P(s' | s, a)} V(s')
         return r + discount*np.einsum('ijk,il->jk', P, Q)

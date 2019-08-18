@@ -218,24 +218,28 @@ class DecodeLMDPControl():
 
 def construct_chain(n_states, r_max):
     n_actions = 2
-    r = -1*np.ones((n_states, n_actions))
-    # r[n_states-2, :] = -r_max
-    r[0, :] = r_max//n_states
-    r[n_states-1, :] = r_max
+    r = 0*np.ones((n_states, n_actions))
+    # r[1, :] = r_max//n_states
+    r[n_states-3, 1] = -r_max/2
+    r[n_states-2, 1] = r_max
+
+    r[0, :] = 0
+    r[n_states-1, :] = 0
 
     p = 0.9
     P = np.zeros((n_states, n_states, n_actions))
 
-    P[0, 0, 0] = p
-    P[1, 0, 0] = 1-p
-    P[0, 0, 1] = 1-p
-    P[1, 0, 1] = p
+    # absorbing states
+    P[0, 0, 0] = 1
+    P[1, 0, 0] = 0
+    P[0, 0, 1] = 1
+    P[1, 0, 1] = 0
 
     m = n_states-1
-    P[m, m, 0] = 1-p
-    P[m-1, m, 0] = p
-    P[m, m, 1] = p
-    P[m-1, m, 1] = 1-p
+    P[m, m, 0] = 1
+    P[m-1, m, 0] = 0
+    P[m, m, 1] = 1
+    P[m-1, m, 1] = 0
 
     # go left
     for i in range(1, n_states-1):
@@ -257,22 +261,30 @@ class DiscountingTest():
 
     @staticmethod
     def chain_test():
-        n_states = 8
-        P, r = construct_chain(n_states, 10)
+        n_states = 16
+        P, r = construct_chain(n_states, 20)
 
         p, q = mdp_encoder(P, r)
-
-        # print('q', q)
-        # print('p', p)
-        import matplotlib.pyplot as plt
-        plt.subplot(1, 2, 1)
-        plt.imshow(p)
-        # plt.show()
-
         u, v = lmdp_solver(p, q, 0.75)
-        # pi_u_star = lmdp_decoder(u, P)
-        plt.subplot(1, 2, 2)
+
+        plt.figure(figsize=(16,16))
+
+        plt.subplot(2, 2, 1)
+        plt.title('P: transition function')
+        plt.imshow(np.sum(P, axis=-1))
+
+        plt.subplot(2, 2, 2)
+        plt.title('r: reward function')
+        plt.imshow(r)
+
+        plt.subplot(2,2,3)
+        plt.title('p: unconstrained dynamics')
+        plt.imshow(p)
+
+        plt.subplot(2, 2, 4)
+        plt.title('u: optimal control')
         plt.imshow(u)
+
         plt.show()
 
         """
@@ -281,6 +293,7 @@ class DiscountingTest():
         """
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     # TestMDPEmbeddeding()
     # TestLMDPSolver()
     # DecodeLMDPControl()
