@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import copy
 import functools
 
-from search_spaces import *
+from mdp.search_spaces import *
 
 def clipped_stack(x, n=1000):
     m = len(x)
@@ -322,18 +322,37 @@ def generate_mpvi_vs_mvi(mdp, init):
 # def plot(vs1, vs2, save_path):
 
 
+
+
+def generate_model_iteration(mdp, init):
+    init = rnd.standard_normal((mdp.S, mdp.S, mdp.A))  # needs its own init. alternatively could find init that matches value of other inits?!?
+    pi_star = utils.solve(policy_iteration(mdp), utils.softmax(rnd.standard_normal((mdp.S,mdp.A))))[-1]
+    update_fn = model_iteration(mdp, 0.01)
+    logits = utils.solve(update_fn, init)
+
+    vs = np.vstack([utils.value_functional(utils.softmax(logit), mdp.r, pi_star, mdp.discount).T for logit in logits])
+
+    n = vs.shape[0]
+    plt.scatter(vs[0, 0], vs[0, 1], c='g', label='PG')
+    plt.scatter(vs[1:-1, 0], vs[1:-1, 1], c=range(n-2), cmap='spring', s=10)
+    plt.scatter(vs[-1, 0], vs[-1, 1], c='g', marker='x')
+    # plt.show()
+
+
+
+
 if __name__ == '__main__':
     n_states, n_actions = 2, 2
     mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
-    pis = utils.gen_grid_policies(41)
+    pis = utils.gen_grid_policies(9)
     vs = utils.polytope(mdp.P, mdp.r, mdp.discount, pis)
     init = rnd.standard_normal((mdp.S, mdp.A))
 
     experiments = [
         # functools.partial(generate_vi_sgd_vs_mom, lr=a) for a in np.logspace(-5, 0, 6)
         #
-        generate_vi_sgd_vs_mom,
-        generate_pvi_vs_vi,
+        # generate_vi_sgd_vs_mom,
+        # generate_pvi_vs_vi,
         #
         # generate_avi_vs_vi,
         #
@@ -344,6 +363,7 @@ if __name__ == '__main__':
         # generate_mppg_vs_mpg,
         #
         # generate_mpvi_inits,
+        generate_model_iteration
     ]
 
     for exp in experiments:

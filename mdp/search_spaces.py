@@ -54,12 +54,9 @@ def random_reparameterisation(cores, i):
 def build(cores):
     return functools.reduce(np.dot, cores)
 
-def policy_iteration(mdp):
-    def update_fn(pi):
-        V = utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
-        Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
-        return utils.onehot(np.argmax(Q, axis=1), mdp.A)  # greedy update
-    return update_fn
+######################
+# Value iteration
+######################
 
 """
 Value iteration;
@@ -89,6 +86,13 @@ def parameterised_value_iteration(mdp, lr):
 # Policy iteration
 ######################
 
+def policy_iteration(mdp):
+    def update_fn(pi):
+        V = utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
+        Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
+        return utils.onehot(np.argmax(Q, axis=1), mdp.A)  # greedy update
+    return update_fn
+
 def policy_gradient_iteration_logits(mdp, lr):
     # d/dlogits V = E_{\pi}[V] = E[V . d/dlogit log \pi]
     dlogpi_dlogit = jacrev(lambda logits: np.log(utils.softmax(logits)))
@@ -114,6 +118,27 @@ def parameterised_policy_gradient_iteration(mdp, lr):
         A = Q-V
         grads = [np.einsum('ijkl,ij->kl', d, A) for d in dlogpi_dw(cores)]
         return [c+lr*g+1e-4*dH for c, g, dH in zip(cores, grads, dHdw(cores))]
+    return update_fn
+
+######################
+# Model iteration
+######################
+
+def model_iteration(mdp, lr):
+    V_true = lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
+    V_guess = lambda P, pi: utils.value_functional(P, mdp.r, pi, mdp.discount)
+    # apis = [] # adversarial pis
+    apis = utils.get_deterministic_policies(mdp.S, mdp.A)
+
+    def loss_fn(logits):
+         return np.sum(np.stack([(V_true(pi) - V_guess(utils.softmax(logits), pi))**2 for pi in apis], axis=0))
+
+    dLdp = grad(loss_fn)
+
+    @jit
+    def update_fn(params):
+        return params - lr*dLdp(params)
+
     return update_fn
 
 ######################
@@ -162,6 +187,8 @@ def approximate(v, cores):
     init = (cores, [np.zeros_like(c) for c in cores])
     final_variables, momentum_var = solve(momentum_bundler(l2_update_fn, 0.9), init)[-1]
     return final_variables
+
+#
 
 
 if __name__ == '__main__':
