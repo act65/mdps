@@ -1,6 +1,7 @@
-import numpy as np
+import mdp.utils as utils
+from mdp.lmdps import *
 
-from lmdps import *
+import numpy as np
 
 class TestMDPEmbeddeding():
     def __init__(self):
@@ -46,16 +47,16 @@ class TestMDPEmbeddeding():
         # a distribution over future states
         assert np.isclose(np.sum(P, axis=0), np.ones((2,2))).all()
 
-        pi = softmax(r, axis=1)  # exp Q vals w gamma = 0
+        pi = utils.softmax(r, axis=1)  # exp Q vals w gamma = 0
         # a distribution over actions
         assert np.isclose(np.sum(pi, axis=1), np.ones((2,))).all()
 
         p, q = mdp_encoder(P, r)
 
         print('q', q)
-        P_pi = np.einsum('ijk,jk->ij', P, pi)
-
         print('p', p)
+        print('P', P)
+        P_pi = np.einsum('ijk,jk->ij', P, pi)
         print('P_pi', P_pi)
 
         # the unconstrained dynamics with deterministic transitions,
@@ -68,11 +69,11 @@ class TestMDPEmbeddeding():
             for k in range(2): # actions
                 ce[j, k] = CE(P[:, j, k], p[:, j])
 
-        r_approx = q[:, np.newaxis] - ce
+        r_approx = q[:, np.newaxis] + ce
 
         print(np.around(r, 3))
         print(np.around(r_approx, 3))
-        print('r ~= q - CE(P || p): {}'.format(np.isclose(r, r_approx, atol=1e-3).all()))
+        print('r ~= q - CE(P || p): {}'.format(np.isclose(r, r_approx, atol=1e-2).all()))
         print('\n\n')
 
     @staticmethod
@@ -80,14 +81,18 @@ class TestMDPEmbeddeding():
         """
         Explore how the unconstrained dynamics in a random setting.
         """
-        n_states, n_actions = 12, 3
-        P, r = rnd_mdp(n_states, n_actions)
+        n_states, n_actions = 3, 2
+        mdp = utils.build_random_mdp(n_states, n_actions, 0.9)
+        P = mdp.P
+        r = mdp.r
 
         # a distribution over future states
         assert np.isclose(np.sum(P, axis=0), np.ones((n_states, n_actions))).all()
 
         p, q = mdp_encoder(P, r)
 
+        # print('P', P)
+        # print('r', r)
         # print('q', q)
         # print('p', p)
 
@@ -99,7 +104,7 @@ class TestMDPEmbeddeding():
             for k in range(n_actions): # actions
                 ce[j, k] = CE(P[:, j, k], p[:, j])
 
-        r_approx = q[:, np.newaxis] - ce
+        r_approx = q[:, np.newaxis] + ce
 
         print('r', np.around(r, 3), r.shape)
         print('r_approx', np.around(r_approx, 3), r_approx.shape)
@@ -211,7 +216,85 @@ class DecodeLMDPControl():
         pi = lmdp_option_decoder(u, P)
         print(pi)
 
+def construct_chain(n_states, r_max):
+    n_actions = 2
+    r = 0*np.ones((n_states, n_actions))
+    # r[1, :] = r_max//n_states
+    r[n_states-3, 1] = -r_max/2
+    r[n_states-2, 1] = r_max
+
+    r[0, :] = 0
+    r[n_states-1, :] = 0
+
+    p = 0.9
+    P = np.zeros((n_states, n_states, n_actions))
+
+    # absorbing states
+    P[0, 0, 0] = 1
+    P[1, 0, 0] = 0
+    P[0, 0, 1] = 1
+    P[1, 0, 1] = 0
+
+    m = n_states-1
+    P[m, m, 0] = 1
+    P[m-1, m, 0] = 0
+    P[m, m, 1] = 1
+    P[m-1, m, 1] = 0
+
+    # go left
+    for i in range(1, n_states-1):
+        P[i-1, i, 0] = p
+        P[i+1, i, 0] = 1-p
+    # go right
+    for i in range(1, n_states-1):
+        P[i+1, i, 1] = p
+        P[i-1, i, 1] = 1-p
+
+    for a in range(n_actions):
+        assert np.isclose(np.sum(P[:, :, a], axis=0), np.ones((n_states, ))).all()
+
+    return P, r
+
+class DiscountingTest():
+    def __init__(self):
+        self.chain_test()
+
+    @staticmethod
+    def chain_test():
+        n_states = 16
+        P, r = construct_chain(n_states, 20)
+
+        p, q = mdp_encoder(P, r)
+        u, v = lmdp_solver(p, q, 0.75)
+
+        plt.figure(figsize=(16,16))
+
+        plt.subplot(2, 2, 1)
+        plt.title('P: transition function')
+        plt.imshow(np.sum(P, axis=-1))
+
+        plt.subplot(2, 2, 2)
+        plt.title('r: reward function')
+        plt.imshow(r)
+
+        plt.subplot(2,2,3)
+        plt.title('p: unconstrained dynamics')
+        plt.imshow(p)
+
+        plt.subplot(2, 2, 4)
+        plt.title('u: optimal control')
+        plt.imshow(u)
+
+        plt.show()
+
+        """
+        PROBLEM!
+        hmm. maybe this would be solved with finite horizon MDPs?!
+        """
+
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     # TestMDPEmbeddeding()
     # TestLMDPSolver()
-    DecodeLMDPControl()
+    # DecodeLMDPControl()
+    DiscountingTest()

@@ -8,7 +8,7 @@ import mdp.utils as utils
 import mdp.search_spaces as search_spaces
 
 def graph_PI():
-    n_states = 6
+    n_states = 8
     n_actions = 2
 
     det_pis = utils.get_deterministic_policies(n_states, n_actions)
@@ -31,7 +31,7 @@ def graph_PI():
         print('Iteration: {}'.format(i))
         v = utils.value_functional(mdp.P, mdp.r, pi, mdp.discount).squeeze()
         a = graph.sparse_coeffs(basis, v, lr=0.1, a_init=a)
-        plt.figure()
+        plt.figure(figsize=(16,16))
         nx.draw(G, pos, node_color=a)
         # plt.show()
         plt.savefig('figs/pi_graphs/{}.png'.format(i))
@@ -51,12 +51,16 @@ def graph_PG():
 
     basis = graph.construct_mdp_basis(det_pis, mdp)
 
-    init_pi = utils.softmax(np.random.standard_normal((n_states, n_actions)))
-    init_v = utils.value_functional(mdp.P, mdp.r, init_pi, mdp.discount).squeeze()
+    init_logits = np.random.standard_normal((n_states, n_actions))
+    init_v = utils.value_functional(mdp.P, mdp.r, utils.softmax(init_logits), mdp.discount).squeeze()
     a = graph.sparse_coeffs(basis, init_v, lr=0.1)
 
-    pis = utils.solve(search_spaces.policy_gradient_iteration_logits(mdp, 0.01), init_pi)
+    print('\nSolving PG')
+    pis = utils.solve(search_spaces.policy_gradient_iteration_logits(mdp, 0.1), init_logits)
     print("\n{} policies to vis".format(len(pis)))
+    n = len(pis)
+    # pis = pis[::n//100]
+    pis = pis[0:20]
 
     for i, pi in enumerate(pis[:-1]):
         print('Iteration: {}'.format(i))
@@ -70,4 +74,5 @@ def graph_PG():
 
 
 if __name__ == '__main__':
+    # graph_PI()
     graph_PG()

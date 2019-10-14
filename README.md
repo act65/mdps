@@ -44,7 +44,7 @@ Then, you should be able to run each of the scripts in `experiments/` and genera
 - [ ] `discounting_experiments.py`:
   - [ ] Visulise how changing the discount rate changes the shape of the polytope.
   - [ ] Explore and visualise hyperbolic discounting.
-  - [ ] How does the discount change the optimal policy?
+  - [ ] How does the discount change the optimal policy? (optimal policy as a fn of discount!?)
 
 ### Search dynamics
 
@@ -75,6 +75,7 @@ Then, you should be able to run each of the scripts in `experiments/` and genera
 ### Other possible experiments
 
 - [ ] `graph_signal_vis.py` Generate a graph of update transitions under an update fn. The nodes will be the value of the deterministic policies. This could be a way to visualise in higher dimensins!? Represent the polytope as a graph. And the value is a signal on the graph. Need a way to take V_pi -> \sum a_i . V_pi_det_i. Connected if two nodes are only a single action different.
+- [ ] `mc-grap.py`: could explore different ways of estimating the gradient; score, pathwise, measure.
 
 
 ### Other facets of MDPs not explored

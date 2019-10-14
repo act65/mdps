@@ -10,8 +10,8 @@ def onehot(x, n):
 
 def compare_mdp_lmdp():
     n_states, n_actions = 2, 2
-    mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
-    pis = utils.gen_grid_policies(41)
+    mdp = utils.build_random_mdp(n_states, n_actions, 0.9)
+    pis = utils.gen_grid_policies(7)
     vs = utils.polytope(mdp.P, mdp.r, mdp.discount, pis)
 
     plt.figure(figsize=(16,16))
@@ -19,21 +19,24 @@ def compare_mdp_lmdp():
 
     # solve via LMDPs
     p, q = lmdps.mdp_encoder(mdp.P, mdp.r)
-    # p = np.einsum('ijk,jk->ij', mdp.P, np.ones((n_states, n_actions))/n_actions)
     u, v = lmdps.lmdp_solver(p, q, mdp.discount)
     pi_u_star = lmdps.lmdp_decoder(u, mdp.P)
 
+    pi_p = lmdps.lmdp_decoder(p, mdp.P)
+
     # solve MDP
     init = np.random.standard_normal((n_states, n_actions))
-    qs = utils.solve(search_spaces.value_iteration(mdp, lr=0.1), init)[-1]
-    pi_star = onehot(np.argmax(qs, axis=1), n_actions)
+    pi_star = utils.solve(search_spaces.policy_iteration(mdp), init)[-1]
+    # pi_star = onehot(np.argmax(qs, axis=1), n_actions)
 
     # evaluate both policies.
     v_star = utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount)
     v_u_star = utils.value_functional(mdp.P, mdp.r, pi_u_star, mdp.discount)
+    v_p = utils.value_functional(mdp.P, mdp.r, pi_p, mdp.discount)
 
-    plt.scatter(v_star[0, 0], v_star[1, 0], c='m', marker='x', label='mdp')
-    plt.scatter(v_u_star[0, 0], v_u_star[1, 0], c='g', marker='x', label='lmdp')
+    plt.scatter(v_star[0, 0], v_star[1, 0], c='m', alpha=0.5, marker='x', label='mdp')
+    plt.scatter(v_u_star[0, 0], v_u_star[1, 0], c='g', alpha=0.5, marker='x', label='lmdp')
+    plt.scatter(v_p[0, 0], v_p[1, 0], c='k', marker='x', alpha=0.5, label='p')
     plt.legend()
     plt.show()
 
@@ -87,7 +90,7 @@ def lmdp_field():
     Plot difference under linearTD operator.
     """
     n_states, n_actions = 2, 2
-    pis = utils.gen_grid_policies(7)
+    pis = utils.gen_grid_policies(11)
 
     mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
 
@@ -110,10 +113,25 @@ def lmdp_field():
 
     normed_dvs = utils.normalize(dvs)
 
-    plt.title('The linearised TD operator')
+    plt.figure(figsize=(16,16))
+    plt.subplot(1,2,1)
+    plt.title('Linearised Bellman operator')
     plt.quiver(vs[:, 0], vs[:, 1], normed_dvs[:, 0], normed_dvs[:,1], np.linalg.norm(dvs, axis=1))
-    plt.savefig('figs/LTD_op.png')
+
+    # plot bellman
+    Vs = utils.polytope(mdp.P, mdp.r, mdp.discount, pis)
+    diff_op = lambda V: utils.bellman_optimality_operator(mdp.P, mdp.r, np.expand_dims(V, 1), mdp.discount) - np.expand_dims(V, 1)
+    dVs = np.stack([np.max(diff_op(V), axis=1) for V in Vs])
+
+    normed_dVs = utils.normalize(dVs)
+
+    plt.subplot(1,2,2)
+    plt.title('Bellman operator')
+    plt.quiver(Vs[:, 0], Vs[:, 1], normed_dVs[:, 0], normed_dVs[:,1], np.linalg.norm(dVs, axis=1))
+
+    # plt.savefig('figs/LBO_BO.png')
     plt.show()
+
 
 if __name__ == "__main__":
     # compare_mdp_lmdp()

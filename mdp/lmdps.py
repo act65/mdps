@@ -7,13 +7,6 @@ from jax import grad, jit
 
 import mdp.utils as utils
 
-def rnd_mdp(n_states, n_actions):
-    P = rnd.random((n_states, n_states, n_actions))
-    P = P/P.sum(0)
-
-    r = rnd.random((n_states, n_actions))
-    return P, r
-
 def rnd_lmdp(n_states, n_actions):
     p = rnd.random((n_states, n_states))
     p = p/p.sum(0)
@@ -88,14 +81,16 @@ def CE(P, Q):
 
 @jit
 def linear_bellman_operator(p, q, z, discount):
+    """
+    z(s) = e^q E_{s' \sim p(. | s)} z(s')^{\gamma}
+    """
     Q = np.diag(np.squeeze(np.exp(q)))
     return np.dot(np.dot(Q, p), z**discount)
 
 @jit
 def linear_value_functional(p, q, u, discount):
     """
-    V = r_{\pi} + \gamma P_{\pi} V
-      = (I-\gamma P_{\pi})^{-1}(q - KL(u || p))
+    V(s) = q(s) - KL(u || p) + \gamma P_{s' \sim u} V(s')
 
     Args:
         p (np.ndarray): [n_states x n_states ]
@@ -126,15 +121,14 @@ def lmdp_solver(p, q, discount):
 
     # Evaluate
     # Solve z = QPz
-    def lmdp_bellman_update(z):
-        return linear_bellman_operator(p, q, z, discount)
-
-    z = utils.solve(lmdp_bellman_update, np.ones((p.shape[-1], 1)))[-1]
+    init = np.ones((p.shape[-1], 1))
+    update_fn = lambda z: linear_bellman_operator(p, q, z, discount)
+    z = utils.solve(update_fn, init)[-1].squeeze()
     v = np.log(z)
 
     # Calculate the optimal control
     # G(x) = sum_x' p(x' | x) z(x')
-    G = np.einsum('ij,il->j', p, z)
+    G = np.einsum('ij,i->j', p, z)
     # u*(x' | x) = p(x' | x) z(x') / G[z](x)
     u = p * z[:, np.newaxis] / G[np.newaxis, :]
 

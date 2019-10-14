@@ -94,21 +94,24 @@ def policy_iteration(mdp):
     return update_fn
 
 def policy_gradient_iteration_logits(mdp, lr):
+    # this doesnt seem to behave nicely in larger state spaces!?
     # d/dlogits V = E_{\pi}[V] = E[V . d/dlogit log \pi]
-    dlogpi_dlogit = jacrev(lambda logits: np.log(utils.softmax(logits)))
+    dlogpi_dlogit = jacrev(lambda logits: np.log(utils.softmax(logits)+1e-8))
     dHdlogit = jacrev(lambda logits: utils.entropy(utils.softmax(logits)))
 
     @jit
     def update_fn(logits):
         V = utils.value_functional(mdp.P, mdp.r, utils.softmax(logits), mdp.discount)
         Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
+
+        # NOTE this is actually soft A2C.
         A = Q-V
         g = np.einsum('ijkl,ij->kl', dlogpi_dlogit(logits), A)
         return logits + 1e-4*dHdlogit(logits) + lr * g
     return update_fn
 
 def parameterised_policy_gradient_iteration(mdp, lr):
-    dlogpi_dw = jacrev(lambda cores: np.log(utils.softmax(build(cores), axis=1)))
+    dlogpi_dw = jacrev(lambda cores: np.log(utils.softmax(build(cores), axis=1)+1e-8))
     dHdw = jacrev(lambda cores: utils.entropy(utils.softmax(build(cores))))
 
     @jit
@@ -174,7 +177,7 @@ def momentum_bundler(update_fn, decay):
         return W_tp1, M_tp1
     return jit(momentum_update_fn)
 
-def approximate(v, cores):
+def approximate(v, cores, lr=1e-2):
     """
     cores = random_parameterised_matrix(2, 1, d_hidden=8, n_hidden=4)
     v = rnd.standard_normal((2,1))
@@ -183,12 +186,10 @@ def approximate(v, cores):
     """
     loss = lambda cores: np.sum(np.square(v - build(cores)))
     dl2dc = grad(loss)
-    l2_update_fn = lambda cores: [c - 0.01*g for g, c in zip(dl2dc(cores), cores)]
+    l2_update_fn = lambda cores: [c - lr*g for g, c in zip(dl2dc(cores), cores)]
     init = (cores, [np.zeros_like(c) for c in cores])
-    final_variables, momentum_var = solve(momentum_bundler(l2_update_fn, 0.9), init)[-1]
+    final_variables, momentum_var = utils.solve(momentum_bundler(l2_update_fn, 0.9), init)[-1]
     return final_variables
-
-#
 
 
 if __name__ == '__main__':
