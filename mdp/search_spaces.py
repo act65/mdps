@@ -127,14 +127,19 @@ def parameterised_policy_gradient_iteration(mdp, lr):
 # Model iteration
 ######################
 
-def model_iteration(mdp, lr):
-    V_true = lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
-    V_guess = lambda P, pi: utils.value_functional(P, mdp.r, pi, mdp.discount)
-    # apis = [] # adversarial pis
-    apis = utils.get_deterministic_policies(mdp.S, mdp.A)
+def parse_model_params(mdp, params):
+    # |S| x |S| x |A| + |S| x |A|
+    n = mdp.S * mdp.S * mdp.A
+    return params[:n].reshape((mdp.S, mdp.S, mdp.A)), params[n:].reshape((mdp.S, mdp.A))
 
-    def loss_fn(logits):
-         return np.sum(np.stack([(V_true(pi) - V_guess(utils.softmax(logits), pi))**2 for pi in apis], axis=0))
+def model_iteration(mdp, lr, pis):
+    V_true = lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
+    V_guess = lambda P, r, pi: utils.value_functional(P, r, pi, mdp.discount)
+
+
+    def loss_fn(params):
+        p_logits, r = parse_model_params(mdp, params)
+        return np.sum(np.stack([(V_true(pi) - V_guess(utils.softmax(p_logits), r, pi))**2 for pi in pis], axis=0))
 
     dLdp = grad(loss_fn)
 
