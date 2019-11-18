@@ -82,6 +82,13 @@ def parameterised_value_iteration(mdp, lr):
         return [c+lr*g for c, g in zip(cores, grads)]
     return jit(update_fn)
 
+def complex_value_iteration(mdp, lr):
+    T = lambda Q: utils.bellman_optimality_operator(mdp.P, mdp.r, Q, mdp.discount)
+    L = lambda Q: np.sum((T(np.abs(Q)) - np.abs(Q))**2)
+    dLdw = grad(L)
+    U = lambda Q: Q - lr * dLdw(Q)
+    return jit(U)
+
 ######################
 # Policy iteration
 ######################
@@ -133,19 +140,19 @@ def parse_model_params(mdp, params):
     return params[:n].reshape((mdp.S, mdp.S, mdp.A)), params[n:].reshape((mdp.S, mdp.A))
 
 def model_iteration(mdp, lr, pis):
-    V_true = lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
-    V_guess = lambda P, r, pi: utils.value_functional(P, r, pi, mdp.discount)
+    V_true = vmap(lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount))
+    V_guess = vmap(lambda P, r, pi: utils.value_functional(P, r, pi, mdp.discount), in_axes=(None, None, 0))
 
 
     def loss_fn(params):
         p_logits, r = parse_model_params(mdp, params)
-        return np.sum(np.stack([(V_true(pi) - V_guess(utils.softmax(p_logits), r, pi))**2 for pi in pis], axis=0))
+        return np.sum((V_true(pis) - V_guess(utils.softmax(p_logits), r, pis))**2)
 
     dLdp = grad(loss_fn)
 
     @jit
     def update_fn(params):
-        return params - lr*dLdp(params)
+        return params - lr*utils.clip_by_norm(dLdp(params), 100)
 
     return update_fn
 

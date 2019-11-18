@@ -29,6 +29,7 @@ def generate_model_iteration():
 
     # adversarial pis
     apis = utils.get_deterministic_policies(mdp.S, mdp.A)
+    apis = np.stack(apis)
 
     update_fn = model_iteration(mdp, lr, apis)
     params = utils.solve(update_fn, init)
@@ -63,21 +64,42 @@ def generate_model_cs():
 
 
     """
+    n_states = 32
     n_actions = 2
-    for n_states in range(2, 12):
+    lr = 0.01
+    k = 64
 
-        # adversarial pis
-        # pis = utils.get_deterministic_policies(mdp.S, mdp.A)
-        apis = utils.get_random_policies(mdp.S, mdp.A, N)
+    mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
+    init = rnd.standard_normal((mdp.S * mdp.S * mdp.A + mdp.S * mdp.A))
 
+    pi_star = utils.solve(policy_iteration(mdp), utils.softmax(rnd.standard_normal((mdp.S,mdp.A))))[-1]
+    print('pi_star\n', pi_star)
 
-        update_fn = model_iteration(mdp, lr, apis)
-        params = utils.solve(update_fn, init)
-        p_logits, r = parse_model_params(mdp, params[-1])
-        error = (utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount) - utils.value_functional(utils.softmax(p_logits), r, pi_star, mdp.discount))**2
-        # which pis should we evaluate under? many?
+    # adversarial pis
+    # apis = utils.get_deterministic_policies(mdp.S, mdp.A)
+    apis = np.stack([utils.random_det_policy(mdp.S, mdp.A) for _ in range(k)])
+
+    update_fn = model_iteration(mdp, lr, apis)
+    params = utils.solve(update_fn, init)
+    p_logits, r = parse_model_params(mdp, params[-1])
+    error = np.mean((utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount) - utils.value_functional(utils.softmax(p_logits), r, pi_star, mdp.discount))**2)
+    print('\n', error)
+    new_mdp = utils.MDP(mdp.S, mdp.A, utils.softmax(p_logits), r, mdp.discount, mdp.d0)
+    pi_star = utils.solve(policy_iteration(new_mdp), utils.softmax(rnd.standard_normal((mdp.S,mdp.A))))[-1]
+    print(pi_star)
+
+    apis = np.stack([utils.random_policy(mdp.S, mdp.A) for _ in range(k)])
+
+    update_fn = model_iteration(mdp, lr, apis)
+    params = utils.solve(update_fn, init)
+    p_logits, r = parse_model_params(mdp, params[-1])
+    error = np.mean((utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount) - utils.value_functional(utils.softmax(p_logits), r, pi_star, mdp.discount))**2)
+    print('\n', error)
+    new_mdp = utils.MDP(mdp.S, mdp.A, utils.softmax(p_logits), r, mdp.discount, mdp.d0)
+    pi_star = utils.solve(policy_iteration(new_mdp), utils.softmax(rnd.standard_normal((mdp.S,mdp.A))))[-1]
+    print(pi_star)
 
 
 if __name__ == '__main__':
-    generate_model_iteration()
-    # generate_model_cs()
+    # generate_model_iteration()
+    generate_model_cs()

@@ -1,4 +1,4 @@
-This is an attmept to get some better intution about [MDPs](https://en.wikipedia.org/wiki/Markov_decision_process). Their properties, geometry, dynamics...
+This is an attmept to get some better intution about [MDPs](https://en.wikipedia.org/wiki/Markov_decision_process). Their properties; structure, geometry, dynamics, ...?
 
 This work is a mixture of;
 
@@ -11,10 +11,9 @@ This work is a mixture of;
 
 Setting;
 - All experiments are done with tabular MDPs.
-- The rewards are deterministic and the transtions are stochastic.
+- The rewards and transtions are stochastic.
 - All setting assume we can make synchronous updates.
 - It is assumed we have access to the transition function and reward function.
-- ?
 
 ***
 
@@ -36,15 +35,13 @@ Then, you should be able to run each of the scripts in `experiments/` and genera
 - [ ] `density_experiments.py`: How are policies distributed in value space?
   - [x] Visualise the density of the value function polytope.
   - [ ] Calculate the expected suboptimality (for all policies - and all possible Ps/rs)? How does this change in high dimensions?
-  - [ ] Apply an abstraction (with X property) and visualise how the distribution of value changes.
-  - [ ] Visualise a distributional value polytope.
 
 ### Discounting
 
 - [ ] `discounting_experiments.py`:
-  - [ ] Visulise how changing the discount rate changes the shape of the polytope.
-  - [ ] Explore and visualise hyperbolic discounting.
+  - [x] Visualise how changing the discount rate changes the shape of the polytope.
   - [ ] How does the discount change the optimal policy? (optimal policy as a fn of discount!?)
+  - [ ] Explore and visualise hyperbolic discounting.
 
 ### Search dynamics
 
@@ -54,8 +51,8 @@ Then, you should be able to run each of the scripts in `experiments/` and genera
   - [ ] Visualise n steps for PG / VI.
   - [ ] calculate the tangent fields. are they similar? what about for parameterised versions, how can we calculate their vector fields???
 - [x] `trajectory_experiments.py`: What do the trajectories of momentum and over parameterised optimisations look like on a polytope?
-  - [ ] How does momentum change the trajectories?
-  - [ ] How does over parameterisation yield acceleration? ANd how does its trajectories relate to optimisation via momentum?
+  - [x] Visualise how momentum changes the trajectories of different solvers
+  - [ ] How does over parameterisation yield acceleration? And how does its trajectories relate to optimisation via momentum?
   - [ ] Test dynamics with complex valued parameters.
   - [ ] Generalise the types of parameterised fns (jax must have some tools for this)
 
@@ -67,16 +64,15 @@ Then, you should be able to run each of the scripts in `experiments/` and genera
 
 ### LMDPs
 
-- [ ] `lmdp_experiments.py`: How do LMDPs compare to MDPs?
-  - [ ] Do they give similar results?
+- [x] `lmdp_experiments.py`: How do LMDPs compare to MDPs?
+  - [x] Do they give similar results?
   - [ ] How do they scale?
-  - [ ] ?
 
 ### Other possible experiments
 
 - [ ] `graph_signal_vis.py` Generate a graph of update transitions under an update fn. The nodes will be the value of the deterministic policies. This could be a way to visualise in higher dimensins!? Represent the polytope as a graph. And the value is a signal on the graph. Need a way to take V_pi -> \sum a_i . V_pi_det_i. Connected if two nodes are only a single action different.
 - [ ] `mc-grap.py`: could explore different ways of estimating the gradient; score, pathwise, measure.
-
+- [ ] Visualise a distributional value polytope.
 
 ### Other facets of MDPs not explored
 
@@ -104,3 +100,5 @@ Observations
 - Parameterisation seems to accelerate PG, but not VI. Why?
 - Sometimes VI converges to a weird place.
 - With smaller and smaller learning rates, and fixed decay, the dynamics of momentum approach GD.
+
+TODOs

@@ -1,9 +1,11 @@
 import collections
 import itertools
 
+
 import jax.numpy as np
 from jax import jit
 import numpy.random as rnd
+import numpy
 
 import mdp.search_spaces as search_spaces
 
@@ -13,12 +15,21 @@ def onehot(x, N):
 def entropy(p):
     return -np.sum(np.log(p+1e-8) * p)
 
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+
 def softmax(x, axis=-1):
     return np.exp(x)/np.sum(np.exp(x), axis=-1, keepdims=True)
 
 def normalize(x):
     mags = np.linalg.norm(x, axis=1, keepdims=True)
     return x/mags
+
+def clip_by_norm(x, norm):
+    v = np.linalg.norm(x)
+    p = sigmoid(v - norm)
+    # p * corrected vs 1-p * uncorrected
+    return p * x * norm / v + (1-p) * x
 
 MDP = collections.namedtuple('mdp', ['S', 'A', 'P', 'r', 'discount', 'd0'])
 
@@ -37,10 +48,32 @@ def gen_grid_policies(N):
     p2s = p2s.ravel()
     return [np.array([[p1, 1-p1],[1-p2, p2]]) for p1 in p1s for p2 in p2s]
 
+# def gen_grid_policies(N, n_states=2, n_actions=2):
+#     # special case for 2 x 2
+#     p1s, p2s = np.linspace(0,1,N), np.linspace(0,1,N)
+#     p1s = p1s.ravel()
+#     p2s = p2s.ravel()
+#     return [np.array([[p1, 1-p1],[1-p2, p2]]) for p1 in p1s for p2 in p2s]
+
 def get_deterministic_policies(n_states, n_actions):
     simplicies = list([np.eye(n_actions)[i] for i in range(n_actions)])
     pis = list(itertools.product(*[simplicies for _ in range(n_states)]))
     return [np.stack(p) for p in pis]
+
+def get_random_policy_2x2():
+    p1 = rnd.random()
+    p2 = rnd.random()
+    return np.array([[p1, 1-p1], [p2, 1-p2]])
+
+def rnd_simplex(d):
+    pts = rnd.uniform(0, 1, d-1)
+    return numpy.diff([0]+ sorted(pts) + [1])
+
+def random_policy(n_states, n_actions):
+    return np.vstack([rnd_simplex(n_actions) for _ in range(n_states)])
+
+def random_det_policy(n_states, n_actions):
+    return np.vstack([onehot(rnd.randint(0, n_actions), n_actions) for _ in range(n_states)])
 
 @jit
 def polytope(P, r, discount, pis):
@@ -125,15 +158,14 @@ def converged(l):
             return True
         if len(l)>10000 and isclose(l[-1], l[-2], 1e-4):
             return True
-        elif isclose(l[-1], l[-2], 1e-8):
+        if isclose(l[-1], l[-2], 1e-8):
             return True
-        elif len(l)>20000:
+        if len(l)>20000:
             print(l[-5:-1])
             raise ValueError('not converged...')
-        else:
-            False
-    else:
-        False
+        # if np.isnan(l[-1]).any():
+        #     raise ValueError('NaNs')
+    return False
 
 def solve(update_fn, init):
     xs = [init]
