@@ -15,13 +15,12 @@ def construct_mdp_basis(det_pis, mdp):
     return np.hstack(V_det_pis)  # [n_states x n_dep_pis]
 
 def mdp_topology(det_pis):
+    # pi topology
     n = len(det_pis)
     A = numpy.zeros((n, n))
-    for i in range(n):
-        for j in range(n):
-            if i != j:
-                diff = np.sum(np.abs(det_pis[i]- det_pis[j]))
-                A[i, j] = 1 if diff == 2 else 0
+    det_pis = np.stack(det_pis)  # n x |S| x |A|
+    diffs = np.sum(np.abs(det_pis[:, None, :, :]- det_pis[None, :, :, :]), axis=[2,3])
+    A = (diffs == 2).astype(np.float32)
     return A
 
 def estimate_coeffs(basis, x):

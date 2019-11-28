@@ -127,7 +127,7 @@ def parameterised_policy_gradient_iteration(mdp, lr):
         Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
         A = Q-V
         grads = [np.einsum('ijkl,ij->kl', d, A) for d in dlogpi_dw(cores)]
-        return [c+lr*g+1e-4*dH for c, g, dH in zip(cores, grads, dHdw(cores))]
+        return [c+lr*g+1e-6*dH for c, g, dH in zip(cores, grads, dHdw(cores))]
     return update_fn
 
 ######################
@@ -189,14 +189,14 @@ def momentum_bundler(update_fn, decay):
         return W_tp1, M_tp1
     return jit(momentum_update_fn)
 
-def approximate(v, cores, lr=1e-2):
+def approximate(v, cores, lr=1e-2, activation_fn=lambda x: x):
     """
     cores = random_parameterised_matrix(2, 1, d_hidden=8, n_hidden=4)
     v = rnd.standard_normal((2,1))
     cores_ = approximate(v, cores)
     print(v, '\n',build(cores_))
     """
-    loss = lambda cores: np.sum(np.square(v - build(cores)))
+    loss = lambda cores: np.sum(np.square(v - activation_fn(build(cores))))
     dl2dc = grad(loss)
     l2_update_fn = lambda cores: [c - lr*g for g, c in zip(dl2dc(cores), cores)]
     init = (cores, [np.zeros_like(c) for c in cores])

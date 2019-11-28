@@ -39,6 +39,16 @@ def build_random_mdp(n_states, n_actions, discount):
     d0 = rnd.random((n_states, 1))
     return MDP(n_states, n_actions, P/P.sum(axis=0, keepdims=True), r, discount, d0/d0.sum(axis=0, keepdims=True))
 
+def build_random_sparse_mdp(n_states, n_actions, discount):
+    P = sparsify(rnd.random((n_states, n_states, n_actions)))
+    r = sparsify(rnd.standard_normal((n_states, n_actions)))
+    d0 = rnd.random((n_states, 1))
+    return MDP(n_states, n_actions, P/P.sum(axis=0, keepdims=True), r, discount, d0/d0.sum(axis=0, keepdims=True))
+
+def sparsify(x):
+    mask = rnd.random(x.shape) > 0.5
+    return x * mask.astype(x.dtype)
+
 ######################
 
 def gen_grid_policies(N):
