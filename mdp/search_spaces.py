@@ -134,10 +134,10 @@ def parameterised_policy_gradient_iteration(mdp, lr):
 # Model iteration
 ######################
 
-def parse_model_params(mdp, params):
+def parse_model_params(n_states, n_actions, params):
     # |S| x |S| x |A| + |S| x |A|
-    n = mdp.S * mdp.S * mdp.A
-    return params[:n].reshape((mdp.S, mdp.S, mdp.A)), params[n:].reshape((mdp.S, mdp.A))
+    n = n_states * n_states * n_actions
+    return params[:n].reshape((n_states, n_states, n_actions)), params[n:].reshape((n_states, n_actions))
 
 def model_iteration(mdp, lr, pis):
     V_true = vmap(lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount))

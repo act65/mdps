@@ -33,7 +33,7 @@ def generate_model_iteration():
 
     update_fn = model_iteration(mdp, lr, apis)
     params = utils.solve(update_fn, init)
-    params = [parse_model_params(mdp, p) for p in params]
+    params = [parse_model_params(mdp.S, mdp.A, p) for p in params]
 
     vs = np.vstack([utils.value_functional(utils.softmax(p_logits), r, pi_star, mdp.discount).T for p_logits, r in params])
 
@@ -81,7 +81,7 @@ def generate_model_cs():
 
     update_fn = model_iteration(mdp, lr, apis)
     params = utils.solve(update_fn, init)
-    p_logits, r = parse_model_params(mdp, params[-1])
+    p_logits, r = parse_model_params(mdp.S, mdp.A, params[-1])
     error = np.mean((utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount) - utils.value_functional(utils.softmax(p_logits), r, pi_star, mdp.discount))**2)
     print('\n', error)
     new_mdp = utils.MDP(mdp.S, mdp.A, utils.softmax(p_logits), r, mdp.discount, mdp.d0)
@@ -92,7 +92,7 @@ def generate_model_cs():
 
     update_fn = model_iteration(mdp, lr, apis)
     params = utils.solve(update_fn, init)
-    p_logits, r = parse_model_params(mdp, params[-1])
+    p_logits, r = parse_model_params(mdp.S, mdp.A, params[-1])
     error = np.mean((utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount) - utils.value_functional(utils.softmax(p_logits), r, pi_star, mdp.discount))**2)
     print('\n', error)
     new_mdp = utils.MDP(mdp.S, mdp.A, utils.softmax(p_logits), r, mdp.discount, mdp.d0)
