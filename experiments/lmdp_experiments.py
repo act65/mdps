@@ -132,8 +132,33 @@ def lmdp_field():
     # plt.savefig('figs/LBO_BO.png')
     plt.show()
 
+def mdp_lmdp_optimality():
+    n_states, n_actions = 2, 2
+
+    n = 5
+    plt.figure(figsize=(8, 16))
+    plt.title('Optimal control (LMDP) vs optimal policy (MDP)')
+    for i in range(n):
+        mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
+        # solve via LMDPs
+        p, q = lmdps.mdp_encoder(mdp.P, mdp.r)
+        u, v = lmdps.lmdp_solver(p, q, mdp.discount)
+
+        init = np.random.standard_normal((n_states, n_actions))
+        pi_star = utils.solve(search_spaces.policy_iteration(mdp), init)[-1]
+
+        P_pi_star = np.einsum('ijk,jk->ij', mdp.P, pi_star)
+        plt.subplot(n, 2, 2*i+1)
+        plt.imshow(u)
+        plt.subplot(n, 2, 2*i+2)
+        plt.imshow(P_pi_star)
+    plt.savefig('figs/lmdp_mdp_optimal_dynamics.png')
+    plt.show()
+
 
 if __name__ == "__main__":
+    np.random.seed(42)
     # compare_mdp_lmdp()
     # compare_acc()
-    lmdp_field()
+    # lmdp_field()
+    mdp_lmdp_optimality()

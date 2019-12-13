@@ -306,12 +306,13 @@ def generate_model_iteration(mdp, init):
 
 
 if __name__ == '__main__':
+    rnd.seed(42)
     print('start')
     n_states, n_actions = 2, 2
     mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
 
     print('\nBuilding polytope')
-    pis = utils.gen_grid_policies(11)
+    pis = utils.gen_grid_policies(21)
     vs = utils.polytope(mdp.P, mdp.r, mdp.discount, pis)
     init = rnd.standard_normal((mdp.S, mdp.A))
 
@@ -323,14 +324,14 @@ if __name__ == '__main__':
         #
         # generate_avi_vs_vi,
         #
-        # generate_PG_vs_VI,
-        generate_PG_vs_PPG,
+        generate_PG_vs_VI,
+        # generate_PG_vs_PPG,
         #
         # generate_mpvi_vs_mvi,
         # generate_mppg_vs_mpg,
         #
         # generate_mpvi_inits,
-        generate_model_iteration
+        # generate_model_iteration
     ]
 
     print('\nRunning experiments')

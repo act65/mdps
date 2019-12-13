@@ -47,11 +47,16 @@ def mom_policy_gradient(mdp, pis):
     lens, pi_stars = [], []
 
     for pi in pis:
-        pi_traj = utils.solve(ss.momentum_bundler(ss.policy_gradient_iteration_logits(mdp, 0.01), 0.9), (np.log(pi+1e-8), np.zeros_like(pi)))
-        pi_star, _ = pi_traj[-1]
+        try:
+            pi_traj = utils.solve(ss.momentum_bundler(ss.policy_gradient_iteration_logits(mdp, 0.01), 0.9), (np.log(pi+1e-8), np.zeros_like(pi)))
+            pi_star, _ = pi_traj[-1]
+            L = len(pi_traj)
+        except ValueError:
+            pi_star = pis[0]
+            L = 10000
 
         pi_stars.append(pi_star)
-        lens.append(len(pi_traj))
+        lens.append(L)
 
     return lens, pi_stars
 
@@ -74,13 +79,18 @@ def param_mom_policy_gradient(mdp, pis):
     core_init = ss.random_parameterised_matrix(2, 2, 32, 8)
 
     for pi in pis:
-        core_init = ss.approximate(pi, core_init, activation_fn=utils.softmax)
-        init = (core_init, [np.zeros_like(c) for c in core_init])
-        pi_traj = utils.solve(ss.momentum_bundler(ss.parameterised_policy_gradient_iteration(mdp, 0.01/len(core_init)), 0.9), init)
-        pi_star, _ = pi_traj[-1]
+        try:
+            core_init = ss.approximate(pi, core_init, activation_fn=utils.softmax)
+            init = (core_init, [np.zeros_like(c) for c in core_init])
+            pi_traj = utils.solve(ss.momentum_bundler(ss.parameterised_policy_gradient_iteration(mdp, 0.01/len(core_init)), 0.9), init)
+            pi_star, _ = pi_traj[-1]
+            L = len(pi_traj)
+        except ValueError:
+            pi_star = pis[0]
+            L = 10000
 
         pi_stars.append(pi_star)
-        lens.append(len(pi_traj))
+        lens.append(L)
 
     return lens, pi_stars
 
@@ -177,8 +187,8 @@ if __name__ =='__main__':
         # mom_param_value_iteration,
         # policy_iteration_partitions,
         # policy_gradient,
-        param_policy_gradient,
-        mom_policy_gradient,
+        # param_policy_gradient,
+        # mom_policy_gradient,
         param_mom_policy_gradient,
     ]
 

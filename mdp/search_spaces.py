@@ -114,7 +114,7 @@ def policy_gradient_iteration_logits(mdp, lr):
         # NOTE this is actually soft A2C.
         A = Q-V
         g = np.einsum('ijkl,ij->kl', dlogpi_dlogit(logits), A)
-        return logits + 1e-4*dHdlogit(logits) + lr * g
+        return logits + 1e-4*dHdlogit(logits) + lr * utils.clip_by_norm(g, 100)
     return update_fn
 
 def parameterised_policy_gradient_iteration(mdp, lr):
@@ -127,7 +127,7 @@ def parameterised_policy_gradient_iteration(mdp, lr):
         Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
         A = Q-V
         grads = [np.einsum('ijkl,ij->kl', d, A) for d in dlogpi_dw(cores)]
-        return [c+lr*g+1e-6*dH for c, g, dH in zip(cores, grads, dHdw(cores))]
+        return [c+lr*utils.clip_by_norm(g, 100)+1e-6*dH for c, g, dH in zip(cores, grads, dHdw(cores))]
     return update_fn
 
 ######################
