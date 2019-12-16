@@ -295,6 +295,6 @@ class DiscountingTest():
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     # TestMDPEmbeddeding()
-    # TestLMDPSolver()
+    TestLMDPSolver()
     # DecodeLMDPControl()
-    DiscountingTest()
+    # DiscountingTest()

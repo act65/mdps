@@ -1,9 +1,12 @@
 import numpy as np
+import scipy.linalg as la
+import networkx as nx
 import matplotlib.pyplot as plt
 
 import mdp.lmdps as lmdps
 import mdp.utils as utils
 import mdp.search_spaces as search_spaces
+
 
 def onehot(x, n):
     return np.eye(n)[x]
@@ -155,10 +158,71 @@ def mdp_lmdp_optimality():
     plt.savefig('figs/lmdp_mdp_optimal_dynamics.png')
     plt.show()
 
+def make_grid_transition_fn(n):
+    actions = []
+    # returns a grid with 4 actions.
+
+    # left right up down.
+    offdi = la.toeplitz([1 if i == 1 else 0 for i in range(n)])
+    I = np.eye(n)
+    A1 = np.kron(offdi,I)
+    A2 = np.kron(I,offdi)
+    actions += [np.tril(A1), np.triu(A1), np.tril(A2), np.triu(A2)]
+
+    # right diags, left diags
+    A1 = np.array([[1 if (i == j + n + 1) and (i%n != 0) else 0 for i in range(n**2)] for j in range(n**2)])
+    A2 = np.array([[1 if (i == j + n - 1 )and (j%n != 0) else 0 for i in range(n**2)] for j in range(n**2)])
+    actions += [A1, A1.T, A2, A2.T]
+
+    # none
+    actions.append(np.eye(n**2))
+
+    # print([a/np.sum(a+1e-8, axis=0) for a in actions])
+
+    adj = np.stack(actions,axis=-1)
+    # BUG this doesnt work like i thought it does. need to fix. actions on edges. normalising means that instead of no action they uniformly take any. BAD
+    return adj/np.sum(adj+1e-8, axis=0, keepdims=True)  # normalise.
+
+
+def test_grid(P):
+    G = nx.from_numpy_array(P.sum(axis=-1))
+    pos = nx.spring_layout(G, iterations=200)
+    nx.draw(G, pos)
+    plt.show()
+
+def make_goal(P):
+    # for each action that takes s to g. give reward.
+    g = np.random.randint(0, P.shape[0])
+    print('goal = {}'.format(g))
+    r = (P[g,:,:] > 0).astype(np.float32)
+    return g, r*10 + 1
+
+def maze_problem():
+    n = 5
+    P = make_grid_transition_fn(n)
+    g, r = make_goal(P)
+
+    p, q = lmdps.mdp_encoder(P, r)
+    u, v = lmdps.lmdp_solver(p, q, 0.5)
+
+    node_labels = {i:'G{}'.format(i) if i == g else str(i) for i in range(n**2)}
+
+    M = p
+    G = nx.from_numpy_array(M)
+    pos = nx.spring_layout(G, iterations=200)
+    nx.draw(G, pos, labels=node_labels, node_color=q, edge_color=M[list(zip(*G.edges()))], cmap=plt.cm.jet)
+    plt.show()
+
+    M = u
+    G = nx.from_numpy_array(M)
+    pos = nx.spring_layout(G, iterations=200)
+    nx.draw(G, pos, labels=node_labels, node_color=q, edge_color=M[list(zip(*G.edges()))], cmap=plt.cm.jet)
+    plt.show()
 
 if __name__ == "__main__":
-    np.random.seed(42)
+    np.random.seed(0)
     # compare_mdp_lmdp()
     # compare_acc()
     # lmdp_field()
-    mdp_lmdp_optimality()
+    # mdp_lmdp_optimality()
+    maze_problem()
