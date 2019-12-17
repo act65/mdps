@@ -1,7 +1,6 @@
 import collections
 import itertools
 
-
 import jax.numpy as np
 from jax import jit
 import numpy.random as rnd
@@ -58,6 +57,7 @@ def gen_grid_policies(N):
     p2s = p2s.ravel()
     return [np.array([[p1, 1-p1],[1-p2, p2]]) for p1 in p1s for p2 in p2s]
 
+# TODO! need this!
 # def gen_grid_policies(N, n_states=2, n_actions=2):
 #     # special case for 2 x 2
 #     p1s, p2s = np.linspace(0,1,N), np.linspace(0,1,N)
@@ -88,9 +88,7 @@ def random_det_policy(n_states, n_actions):
 @jit
 def polytope(P, r, discount, pis):
     print('n pis:{}'.format(len(pis)))
-    def V(pi):
-        return np.sum(value_functional(P, r, pi, discount), axis=1)
-    vs = np.vstack([V(pi) for pi in pis])
+    vs = np.vstack([np.sum(value_functional(P, r, pi, discount), axis=1) for pi in pis])
     return vs
 
 """
