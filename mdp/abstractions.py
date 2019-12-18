@@ -1,5 +1,6 @@
 import numpy as np
 
+import mdp.utils as utils
 """
 Alternatively, we could construct the abstraction first and then lift it to two finer MDPs?!
 This would mean we could do exact abstraction!?
@@ -7,51 +8,59 @@ But how to lift to ensure only the value of the optimal policy is preserved?
 Or the value of all policies is preserved?
 """
 
+#### TODO write tests!!!
+
 def partitions(sim):
     """
 
     """
-    print(sim)
-    print(np.where(np.triu(sim)))
+    d = sim.shape[0]
+    pairs = np.where(np.triu(sim))
+    mapping = {k: [] for k in range(d)}
+    for i, j in zip(*pairs):
+        mapping[i].append(j)
+        mapping[j].append(i)
 
-    idx = np.where(np.triu(sim))
-    n = len(idx[0])
-    parts = {i: [] for i in range(sim.shape[0] - n)}
-    # for i in range(sim.shape - n):
-    #     parts[i].append(i)
-    #
-    # for i, j in zip(*idx):
-    #     print(i,j)
-    raise SystemExit
-    return None
+    mapping = {k: tuple(sorted([k] + v)) for k, v in mapping.items()}
+    parts = list(set(mapping.values())) # this doesnt work when some similarities are not transitive!?
+    return mapping, parts
+
+def construct_abstraction_fn(mapping, parts):
+    m = len(parts)
+    d = len(mapping.keys())
+    f = np.zeros((m, d))
+    for k, v in mapping.items():
+        i = parts.index(v)
+        f[i, k] += 1
+    return f
+
+def abstract_the_mdp(mdp, parts):
+    idx = np.array([p[0] for p in parts])
+
+    abs_P = mdp.P[idx, :, :][:, idx, :]
+    abs_r = mdp.r[idx, :]
+
+    return utils.MDP(len(parts), mdp.A, abs_P, abs_r, mdp.discount, mdp.d0)
 
 
-
-def build_state_abstraction(similar_states, P, r, tol=0.1):
+def build_state_abstraction(similar_states, mdp, tol=0.1):
     """
 
     """
     bools = similar_states + np.eye(similar_states.shape[0]) < tol  # approximate abstraction
-    parts = partitions(bools)
 
     if bools.sum() == 0:
         raise ValueError('No abstraction')
-    # raise SystemExit
-    # exact aggregation
-    # construct equivalence classes
-    # a list of equivalence classes?! [(0,3,4,10), (1,2,5,6), (7,8,9,11)]
 
-    # want a way to do this in numpy!?
-    # for x, x_m1 in enumerate(e_classes):
-    #     for s in x_m1:
-    #         abs_r[x, :] += r[s, :]/len(x_m1)
-    #         for y, y_m1 in enumerate(e_classes):
-    #             for s_ in y_m1:
-    #                 abs_P[y, :, x] += P[s_,:,s]/len(x_m1)
+    mapping, parts = partitions(bools)
+    print('Abstracting from {} states to {} states'.format(mdp.S, len(parts)))
+    f = construct_abstraction_fn(mapping, parts)
+    abs_mdp = abstract_the_mdp(mdp, parts)
 
-    # should calculate the error of the abstraction?!
+    # want a way to do this stuff in numpy!?
+    # should calculate the error of the abstraction?! check it is related to tol!?
 
-    return None
+    return abs_mdp, f
 
 
 def build_option_abstraction(k, P, r):

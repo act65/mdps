@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import mdp.utils as utils
 import mdp.search_spaces as ss
 
+from jax import vmap
+
 def policy_gradient(mdp, pis, lr):
     lens, pi_stars = [], []
 
@@ -43,15 +45,18 @@ def generate_iteration_figures(mdp, pis, iteration_fn, name):
     """
     How many steps to converge to the optima from different starting points.
     """
-    lrs = np.linspace(1e-8, 1, 16) # 0.5 - 0.00195...
-    n = 4
+    n = 3
+    lrs = np.linspace(1e-8, 1, n**2) # 0.5 - 0.00195...
     plt.figure(figsize=(16, 16))
+    value = vmap(lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount))
+    Vs = value(np.stack(pis, axis=0))
+
     for i, lr in enumerate(lrs):
-        print(i)
-        Vs = np.hstack([utils.value_functional(mdp.P, mdp.r, pi, mdp.discount) for pi in pis])
+        print('\n{}: {}\n'.format(i, lr))
         lens, pi_stars = iteration_fn(mdp, pis, lr)
 
         plt.subplot(n,n,i+1)
+        plt.title('Learning rate: {}'.format(lr))
         fig = plt.scatter(Vs[0, :], Vs[1, :], c=lens, s=5)
         fig.axes.get_xaxis().set_visible(False)
         fig.axes.get_yaxis().set_visible(False)
@@ -62,8 +67,9 @@ def generate_iteration_figures(mdp, pis, iteration_fn, name):
 if __name__ =='__main__':
     rnd.seed(41)
     n_states, n_actions = 2, 2
-    mdps = [utils.build_random_mdp(n_states, n_actions, 0.5) for _ in range(3*3)]
-    pis = utils.gen_grid_policies(31)
+    mdps = [utils.build_random_mdp(n_states, n_actions, 0.5) for _ in range(5)]
+    pis = utils.gen_grid_policies(51)
 
     for i, mdp in enumerate(mdps):
+        print('\nMDP {}\n'.format(i))
         generate_iteration_figures(mdp, pis, param_policy_gradient, str(i))
