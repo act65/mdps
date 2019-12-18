@@ -49,7 +49,7 @@ def generate_iteration_figures(mdp, pis, iteration_fn, name):
     lrs = np.linspace(1e-8, 1, n**2) # 0.5 - 0.00195...
     plt.figure(figsize=(16, 16))
     value = vmap(lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount))
-    Vs = value(np.stack(pis, axis=0))
+    Vs = value(np.stack(pis))[:, :, 0]
 
     for i, lr in enumerate(lrs):
         print('\n{}: {}\n'.format(i, lr))
@@ -57,7 +57,7 @@ def generate_iteration_figures(mdp, pis, iteration_fn, name):
 
         plt.subplot(n,n,i+1)
         plt.title('Learning rate: {}'.format(lr))
-        fig = plt.scatter(Vs[0, :], Vs[1, :], c=lens, s=5)
+        fig = plt.scatter(Vs[:, 0], Vs[:, 0], c=lens, s=5)
         fig.axes.get_xaxis().set_visible(False)
         fig.axes.get_yaxis().set_visible(False)
 
@@ -68,7 +68,7 @@ if __name__ =='__main__':
     rnd.seed(41)
     n_states, n_actions = 2, 2
     mdps = [utils.build_random_mdp(n_states, n_actions, 0.5) for _ in range(5)]
-    pis = utils.gen_grid_policies(51)
+    pis = utils.gen_grid_policies(41)
 
     for i, mdp in enumerate(mdps):
         print('\nMDP {}\n'.format(i))
