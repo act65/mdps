@@ -1,13 +1,17 @@
 import numpy as np
 import numpy.random as rnd
 import matplotlib.pyplot as plt
+import multiprocessing
 
 import mdp.utils as utils
 import mdp.search_spaces as ss
 
 from jax import vmap
 
-def policy_gradient(mdp, pis, lr):
+def policy_gradient(args):
+    P, r, discount, d0, pis, lr = args
+
+    mdp = utils.MDP(r.shape[0], r.shape[1], P, r, discount, d0)
     lens, pi_stars = [], []
 
     for pi in pis:
@@ -21,7 +25,9 @@ def policy_gradient(mdp, pis, lr):
 
 
 
-def param_policy_gradient(mdp, pis, lr):
+def param_policy_gradient(args):
+    P, r, discount, d0, pis, lr = args
+    mdp = utils.MDP(r.shape[0], r.shape[1], P, r, discount, d0)
     lens, pi_stars = [], []
     core_init = ss.random_parameterised_matrix(2, 2, 32, 8)
 
@@ -45,19 +51,25 @@ def generate_iteration_figures(mdp, pis, iteration_fn, name):
     """
     How many steps to converge to the optima from different starting points.
     """
-    n = 3
+    n = 4
     lrs = np.linspace(1e-8, 1, n**2) # 0.5 - 0.00195...
     plt.figure(figsize=(16, 16))
     value = vmap(lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount))
     Vs = value(np.stack(pis))[:, :, 0]
 
+    # pool = multiprocessing.Pool(n**2)
+    # # couldnt serialise the mdp collection. so just unwrap them here.
+    # lens_n_pi_stars = pool.map(iteration_fn, [(mdp.P, mdp.r, mdp.discount, mdp.d0, pis, lr) for lr in lrs])
+    # for i, lr, results in zip(range(n**2), lrs, lens_n_pi_stars):
+    #     len, pi_star = results
+
     for i, lr in enumerate(lrs):
         print('\n{}: {}\n'.format(i, lr))
-        lens, pi_stars = iteration_fn(mdp, pis, lr)
+        lens, pi_stars = iteration_fn((mdp.P, mdp.r, mdp.discount, mdp.d0, pis, lr))
 
         plt.subplot(n,n,i+1)
         plt.title('Learning rate: {}'.format(lr))
-        fig = plt.scatter(Vs[:, 0], Vs[:, 0], c=lens, s=5)
+        fig = plt.scatter(Vs[:, 0], Vs[:, 1], c=lens, s=5)
         fig.axes.get_xaxis().set_visible(False)
         fig.axes.get_yaxis().set_visible(False)
 

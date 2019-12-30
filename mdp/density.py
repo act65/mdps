@@ -1,4 +1,5 @@
 import jax.numpy as np
+from jax import grad, jacrev, jit
 import mdp.utils as utils
 
 def density_value_functional(p_pi, P, r, pi, discount):

@@ -64,8 +64,22 @@ Value iteration;
 - and a parameterised version. where Q is a fn of some params.
 """
 
-def value_iteration(mdp, lr):
-    T = lambda Q: utils.bellman_optimality_operator(mdp.P, mdp.r, Q, mdp.discount)
+def sarsa(mdp, lr):
+    def T(V):
+        assert V.shape[1] == 1
+        return utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount)
+
+    def Vpi(Q):
+        pi = utils.softmax(Q,axis=-1)
+        return utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
+
+    U = lambda V: V + lr * (Vpi(T(V)) - V)
+    return jit(U)
+
+def value_iteration(mdp, lr):  # aka q learning
+    def T(Q):
+        assert Q.shape[1] > 1
+        return utils.bellman_optimality_operator(mdp.P, mdp.r, Q, mdp.discount)
     U = lambda Q: Q + lr * (T(Q) - Q)
     return jit(U)
 

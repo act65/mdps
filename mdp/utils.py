@@ -143,6 +143,23 @@ def bellman_optimality_operator(P, r, Q, discount):
         # Q(s, a) =  r(s, a) + \gamma max_a' E_{s'~P(s' | s, a)} Q(s', a')
         return r + discount*np.max(np.einsum('ijk,il->jkl', P, Q), axis=-1)
 
+def bellman_operator(P, r, V, discount):
+    """
+    Args:
+        P (np.ndarray): [n_states x n_states x n_actions]
+        r (np.ndarray): [n_states x n_actions]
+        V (np.ndarray): [n_states x 1]
+        discount (float): the temporal discount value
+
+    Returns:
+        (np.ndarray): [n_states, n_actions]
+    """
+    if len(V.shape) == 1:
+        V = np.expand_dims(Q, 1)
+
+    # Q(s, a) =  r(s, a) + \gamma E_{s'~P(s' | s, a)} V(s')
+    return r + discount*np.einsum('ijk,il->jk', P, V)
+
 """
 Tools for simulating dyanmical systems.
 """
