@@ -65,22 +65,22 @@ Value iteration;
 """
 
 def sarsa(mdp, lr):
-    def T(V):
-        assert V.shape[1] == 1
-        return utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount)
+    pi = lambda Q: utils.softmax(Q)
+    T = lambda Q: utils.bellman_operator(mdp.P, mdp.r, np.einsum('jk,jk->j', Q, pi(Q)), mdp.discount)
+    U = lambda Q: Q + lr * (T(Q) - Q)
+    return jit(U)
 
-    def Vpi(Q):
-        pi = utils.softmax(Q,axis=-1)
-        return utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
-
-    U = lambda V: V + lr * (Vpi(T(V)) - V)
+def q_learning(mdp, lr):
+    pi = lambda Q: onehot(np.argmax(Q, axis=1), Q.shape[1])  # greedy
+    T = lambda Q: utils.bellman_operator(mdp.P, mdp.r, np.einsum('jk,jk->j', Q, pi(Q)), mdp.discount)
+    U = lambda Q: Q + lr * (T(Q) - Q)
     return jit(U)
 
 def value_iteration(mdp, lr):  # aka q learning
-    def T(Q):
-        assert Q.shape[1] > 1
-        return utils.bellman_optimality_operator(mdp.P, mdp.r, Q, mdp.discount)
-    U = lambda Q: Q + lr * (T(Q) - Q)
+    def T(V):
+        assert V.shape[1] == 1
+        return utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount)
+    U = lambda V: V + lr * (np.max(T(V), axis=1, keepdims=True) - V)
     return jit(U)
 
 def parameterised_value_iteration(mdp, lr):
@@ -110,25 +110,28 @@ def complex_value_iteration(mdp, lr):
 def policy_iteration(mdp):
     def update_fn(pi):
         V = utils.value_functional(mdp.P, mdp.r, pi, mdp.discount)
-        Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
+        Q = utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount)
         return utils.onehot(np.argmax(Q, axis=1), mdp.A)  # greedy update
     return update_fn
 
 def policy_gradient_iteration_logits(mdp, lr):
     # this doesnt seem to behave nicely in larger state spaces!?
     # d/dlogits V = E_{\pi}[V] = E[V . d/dlogit log \pi]
-    dlogpi_dlogit = jacrev(lambda logits: np.log(utils.softmax(logits)+1e-8))
-    dHdlogit = jacrev(lambda logits: utils.entropy(utils.softmax(logits)))
+    # dlogpi_dlogit = jacrev(lambda logits: np.log(utils.softmax(logits)+1e-8))
+    dHdlogit = grad(lambda logits: utils.entropy(utils.softmax(logits)))
+    dVdlogit = grad(lambda logits: np.sum(utils.value_functional(mdp.P, mdp.r, utils.softmax(logits), mdp.discount)))
 
     @jit
     def update_fn(logits):
-        V = utils.value_functional(mdp.P, mdp.r, utils.softmax(logits), mdp.discount)
-        Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
-
         # NOTE this is actually soft A2C.
-        A = Q-V
-        g = np.einsum('ijkl,ij->kl', dlogpi_dlogit(logits), A)
-        return logits + 1e-4*dHdlogit(logits) + lr * utils.clip_by_norm(g, 100)
+        # V = utils.value_functional(mdp.P, mdp.r, utils.softmax(logits), mdp.discount)
+        # Q = utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount)
+        # A = Q-V
+        # g = np.einsum('ijkl,ij->kl', dlogpi_dlogit(logits), A)
+
+        g = dVdlogit(logits)
+
+        return logits + lr * utils.clip_by_norm(g, 500) + 1e-8*dHdlogit(logits)
     return update_fn
 
 def parameterised_policy_gradient_iteration(mdp, lr):

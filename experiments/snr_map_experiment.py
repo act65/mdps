@@ -24,6 +24,7 @@ def grad_mag(P, r, pi, discount):
     return np.linalg.norm(J)
 
 
+
 def generate_snr_map():
     n_states, n_actions = 2, 3
     mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
@@ -49,5 +50,59 @@ def generate_snr_map():
     plt.scatter(Vs[:, 0], Vs[:, 1], c=snr)
     plt.show()
 
+
+def est_var_R(mdp, pi, n=60, T=25):
+    Rs = []
+    for _ in range(n):
+        s, a, r = tuple(zip(*utils.rollout(mdp.P, mdp.r, mdp.d0, pi, T)))
+        R = utils.discounted_rewards(r, mdp.discount)
+        Rs.append(R)
+
+    return np.var(Rs)
+
+def emp_est_snr_graph():
+    n_states, n_actions = 12, 3
+    mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
+    pis = [utils.random_policy(n_states, n_actions) for _ in range(100)]
+
+    vs = []
+    hs = []
+    for i, pi in enumerate(pis):
+        print('\r{}'.format(i), end='',flush=True)
+
+        # try:
+        vs.append(est_var_R(mdp, pi))
+        hs.append(utils.entropy(pi))
+        # except ValueError as err:
+        #     print(err)
+
+    plt.scatter(hs, vs)
+    plt.show()
+
+def emp_est_snr_map():
+    n_states, n_actions = 2, 2
+    mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
+    pis = utils.gen_grid_policies(5)
+    vals = utils.polytope(mdp.P, mdp.r, mdp.discount, pis)
+
+    vars = []
+    hs = []
+    for i, pi in enumerate(pis):
+        print('\r{}'.format(i), end='',flush=True)
+
+        vars.append(est_var_R(mdp, pi))
+        hs.append(utils.entropy(pi))
+
+    plt.subplot(2,1,1)
+    plt.scatter(vals[:, 0], vals[:, 1], c=hs)
+    plt.subplot(2,1,2)
+    plt.scatter(vals[:, 0], vals[:, 1], c=vars)
+    # plt.subplot(3,1,1)
+    # plt.scatter(vals[:, 0], vals[:, 0], c=hs)
+    plt.show()
+
+
 if __name__ == "__main__":
-    generate_snr_map()
+    # generate_snr_map()
+    # emp_est_snr_map()
+    emp_est_snr_graph()

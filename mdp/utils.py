@@ -77,7 +77,7 @@ def get_random_policy_2x2():
 
 def rnd_simplex(d):
     pts = rnd.uniform(0, 1, d-1)
-    return numpy.diff([0]+ sorted(pts) + [1])
+    return numpy.diff([0]+ sorted(pts) + [1]).astype(np.float64)
 
 def random_policy(n_states, n_actions):
     return np.vstack([rnd_simplex(n_actions) for _ in range(n_states)])
@@ -85,9 +85,9 @@ def random_policy(n_states, n_actions):
 def random_det_policy(n_states, n_actions):
     return np.vstack([onehot(rnd.randint(0, n_actions), n_actions) for _ in range(n_states)])
 
-@jit
+# @jit
 def polytope(P, r, discount, pis):
-    print('n pis:{}'.format(len(pis)))
+    # print('n pis:{}'.format(len(pis)))
     vs = np.vstack([np.sum(value_functional(P, r, pi, discount), axis=1) for pi in pis])
     return vs
 
@@ -133,15 +133,11 @@ def bellman_optimality_operator(P, r, Q, discount):
     Returns:
         (np.ndarray): [n_states, n_actions]
     """
-    if len(Q.shape) == 1:
-        Q = np.expand_dims(Q, 1)
+    assert len(Q.shape) == 2
+    assert Q.shape[1] != 1
 
-    if Q.shape[1] == 1:  # Q == V
-        # Q(s, a) =  r(s, a) + \gamma E_{s'~P(s' | s, a)} V(s')
-        return r + discount*np.einsum('ijk,il->jk', P, Q)
-    else:
-        # Q(s, a) =  r(s, a) + \gamma max_a' E_{s'~P(s' | s, a)} Q(s', a')
-        return r + discount*np.max(np.einsum('ijk,il->jkl', P, Q), axis=-1)
+    # Q(s, a) =  r(s, a) + \gamma max_a' E_{s'~P(s' | s, a)} Q(s', a')
+    return r + discount*np.max(np.einsum('ijk,il->jkl', P, Q), axis=-1)
 
 def bellman_operator(P, r, V, discount):
     """
@@ -155,7 +151,7 @@ def bellman_operator(P, r, V, discount):
         (np.ndarray): [n_states, n_actions]
     """
     if len(V.shape) == 1:
-        V = np.expand_dims(Q, 1)
+        V = np.expand_dims(V, 1)
 
     # Q(s, a) =  r(s, a) + \gamma E_{s'~P(s' | s, a)} V(s')
     return r + discount*np.einsum('ijk,il->jk', P, V)
@@ -200,3 +196,27 @@ def solve(update_fn, init):
         xs.append(x)
         print('\rStep: {}'.format(len(xs)), end='', flush=True)
     return xs
+
+@jit
+def discounted_rewards(rs, discount):
+    discounts = discount ** np.arange(len(rs))
+    return (1-discount) * np.sum(discounts * np.array(rs))
+
+
+@jit
+def sample(p, temperature=1.0):
+    g = -np.log(-np.log(rnd.random(p.shape))) * temperature
+    idx = np.argmax(np.log(p) + g, axis=-1)
+    return idx
+
+def rollout(transition_fn, reward_fn, d0, pi, T):
+    zeta = []
+    s = sample(d0[:, 0])
+    for _ in range(T):
+        # a = rnd.choice(range(mdp.A), p=renorm(pi[s,:]))
+        a = sample(pi[s,:])
+        r = reward_fn[s,a]
+        zeta.append((s,a,r))
+
+        s = sample(transition_fn[:,s,a])
+    return zeta
