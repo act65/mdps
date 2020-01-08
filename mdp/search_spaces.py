@@ -141,7 +141,7 @@ def parameterised_policy_gradient_iteration(mdp, lr):
     @jit
     def update_fn(cores):
         V = utils.value_functional(mdp.P, mdp.r, utils.softmax(build(cores), axis=1), mdp.discount)
-        Q = utils.bellman_optimality_operator(mdp.P, mdp.r, V, mdp.discount)
+        Q = utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount)
         A = Q-V
         grads = [np.einsum('ijkl,ij->kl', d, A) for d in dlogpi_dw(cores)]
         return [c+lr*utils.clip_by_norm(g, 100)+1e-6*dH for c, g, dH in zip(cores, grads, dHdw(cores))]

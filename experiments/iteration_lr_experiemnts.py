@@ -51,8 +51,8 @@ def generate_iteration_figures(mdp, pis, iteration_fn, name):
     """
     How many steps to converge to the optima from different starting points.
     """
-    n = 4
-    lrs = np.linspace(1e-8, 1, n**2) # 0.5 - 0.00195...
+    n = 3
+    lrs = np.linspace(0.0001, 0.1, n**2) # 0.5 - 0.00195...
     plt.figure(figsize=(16, 16))
     value = vmap(lambda pi: utils.value_functional(mdp.P, mdp.r, pi, mdp.discount))
     Vs = value(np.stack(pis))[:, :, 0]
@@ -80,7 +80,7 @@ if __name__ =='__main__':
     rnd.seed(41)
     n_states, n_actions = 2, 2
     mdps = [utils.build_random_mdp(n_states, n_actions, 0.5) for _ in range(5)]
-    pis = utils.gen_grid_policies(41)
+    pis = utils.gen_grid_policies(31)
 
     for i, mdp in enumerate(mdps):
         print('\nMDP {}\n'.format(i))
