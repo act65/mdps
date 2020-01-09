@@ -69,6 +69,21 @@ def find_symmetric_mdp(n_states, n_actions, discount, lr=1e-2):
     return utils.MDP(n_states, n_actions, P, r, discount, d0)
 
 
+def sample_using_symmetric_prior(S):
+    """
+    Args:
+        S: a similarity matrix. 1 is similar, 0 is not similar.
+
+    Returns:
+        X: a matrix where X[i, j] = 1 if S_ij ~= 1. X \in [0,1]^{nS x nS}.
+    """
+
+    autG = automorphisms(S)
+
+
+    return X
+
+
 if __name__ == '__main__':
     generate_latent_mdp(4, 2, 3)
 

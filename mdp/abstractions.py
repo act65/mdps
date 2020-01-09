@@ -1,6 +1,7 @@
 import numpy as np
 
 import mdp.utils as utils
+import mdp.search_spaces as ss
 """
 Alternatively, we could construct the abstraction first and then lift it to two finer MDPs?!
 This would mean we could do exact abstraction!?
@@ -25,16 +26,19 @@ def partitions(sim):
     parts = list(set(mapping.values())) # this doesnt work when some similarities are not transitive!?
     return mapping, parts
 
-def construct_abstraction_fn(mapping, parts, idx):
-    m = len(idx)
-    d = len(mapping.keys())
-    f = np.zeros((m, d))
-    # print(mapping)
+def construct_abstraction_fn(mapping, idx, m, d):
+    """
+    Construct a mapping to lift abstracted solutions back to the ground problem
+    """
+    f = np.zeros((m, d))  # n_originial, n_abstract
+    # print('\n\n')
+    # print(mapping, parts, idx)
+    # raise SystemExit
     for k, v in mapping.items():
-        i = parts.index(v)
-        f[i, k] += 1
+        i = idx.index(v[0])
+        f[k, i] += 1
     assert not (f > 1).any()
-    return f
+    return f.T
 
 def abstract_the_mdp(mdp, idx):
 
@@ -68,20 +72,23 @@ def build_state_abstraction(similar_states, mdp, tol=0.1):
         raise ValueError('No abstraction')
 
     mapping, parts = partitions(bools)
-    print('Abstracting from {} states to {} states'.format(mdp.S, len(parts)))
-    idx = list(set(np.array([p[0] for p in parts])))  # this might cause problems.!?
-    print(mapping)
-    mapping, parts = fix_mapping(mapping)
-    print(mapping)
+    idx = list(set(np.array([p[0] for p in parts])))  # pick a representative set of states. one from each partition
+    f = construct_abstraction_fn(mapping, idx, mdp.S, len(idx))
 
-    f = construct_abstraction_fn(mapping, parts, idx)
+    # print('Abstracting from {} states to {} states'.format(mdp.S, len(parts)))
+    # print('idx', idx)
+    # print('mapping', mapping)
+    # print('parts', parts)
+    # mapping, parts = fix_mapping(mapping)
+    # print(f)
+    # print(f.shape, abs_mdp.S)
+
     abs_mdp = abstract_the_mdp(mdp, idx)
-    print(parts)
 
     # want a way to do this stuff in numpy!?
     # should calculate the error of the abstraction?! check it is related to tol!?
 
-    return abs_mdp, f, idx
+    return idx, abs_mdp, f
 
 
 def build_option_abstraction(k, P, r):
@@ -91,12 +98,47 @@ def build_option_abstraction(k, P, r):
     pass
 
 
-if __name__ == '__main__':
-    n_states, n_actions = 16, 2
-    mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
-    pis = [utils.random_policy(n_states, n_actions) for _ in range(100)]
-    Qs = np.stack([utils.value_functional(mdp.P, mdp.r, pi, mdp.discount) for pi in pis], axis=0)
+def PI(init, M, f):
+    pi_star = utils.solve(ss.policy_iteration(M), np.log(init))[-1]
+    return utils.value_functional(M.P, M.r, np.dot(f.T, pi_star), M.discount)
 
-    similar_states = np.mean(np.sum((Qs[:, :, None, :] - Qs[:, None, :, :])**2, axis=3), axis=0) # |S| x |S|
-    abstracted_mdp, f, idx = build_state_abstraction(similar_states, mdp)
-    print(idx, len(idx), f.shape)
+def Q(init, M, f):
+
+    # solve
+    V_init = utils.value_functional(M.P, M.r, init, M.discount)
+    Q_init = utils.bellman_operator(M.P, M.r, V_init, M.discount)
+    Q_star = utils.solve(ss.q_learning(M, 0.01), Q_init)[-1]
+    # lift
+    return np.dot(f.T, np.max(Q_star, axis=1, keepdims=True))
+
+def SARSA(init, M, f):
+
+    # solve
+    V_init = utils.value_functional(M.P, M.r, init, M.discount)
+    Q_init = utils.bellman_operator(M.P, M.r, V_init, M.discount)
+    Q_star = utils.solve(ss.sarsa(M, 0.01), Q_init)[-1]
+
+    # lift
+    return np.dot(f.T, np.max(Q_star, axis=1, keepdims=True))
+
+if __name__ == '__main__':
+
+    tol = 0.01
+
+    n_states, n_actions = 512, 2
+    mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
+
+    init = np.random.random((mdp.S, mdp.A))
+    init = init / np.sum(init, axis=1, keepdims=True)
+    pi_star = utils.solve(ss.policy_iteration(mdp), np.log(init))[-1]
+
+    Q_star = utils.bellman_operator(mdp.P, mdp.r,utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount), mdp.discount)
+
+
+    similar_states = np.sum(np.abs(Q_star[:, None, :] - Q_star[None, :, :]), axis=-1)  # |S| x |S|
+    optimal_idx, optimal_abstracted_mdp, optimal_f = build_state_abstraction(similar_states, mdp, tol)
+
+    truth = PI(init, mdp, np.eye(mdp.S))
+    approx = Q(init[optimal_idx], optimal_abstracted_mdp, optimal_f)
+
+    print('\n', 'bound >=V*-V', '\n', '{} >= {}'.format(2*tol/(1-mdp.discount)**2, np.max(np.abs(truth - approx))))

@@ -65,14 +65,14 @@ Value iteration;
 """
 
 def sarsa(mdp, lr):
-    pi = lambda Q: utils.softmax(Q)
+    pi = lambda Q: utils.onehot(np.argmax(Q, axis=1), Q.shape[1])  # greedy
     T = lambda Q: utils.bellman_operator(mdp.P, mdp.r, np.einsum('jk,jk->j', Q, pi(Q)), mdp.discount)
     U = lambda Q: Q + lr * (T(Q) - Q)
     return jit(U)
 
 def q_learning(mdp, lr):
-    pi = lambda Q: onehot(np.argmax(Q, axis=1), Q.shape[1])  # greedy
-    T = lambda Q: utils.bellman_operator(mdp.P, mdp.r, np.einsum('jk,jk->j', Q, pi(Q)), mdp.discount)
+    pi = lambda Q: utils.onehot(np.argmax(Q, axis=1), Q.shape[1])  # greedy
+    T = lambda Q: utils.bellman_operator(mdp.P, mdp.r, np.max(Q, axis=1), mdp.discount)
     U = lambda Q: Q + lr * (T(Q) - Q)
     return jit(U)
 
@@ -82,6 +82,24 @@ def value_iteration(mdp, lr):  # aka q learning
         return utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount)
     U = lambda V: V + lr * (np.max(T(V), axis=1, keepdims=True) - V)
     return jit(U)
+
+def thompson_abstraction_value_iteration(mdp, lr):
+    """
+    Should be able to compare convergence speen versus vanilla value iteration.
+    For problems with symmetry, expect to converge faster.
+    """
+    def T(V):  # current value estimate, similarity measure
+        assert V.shape[1] == 1
+        return np.max(utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount), axis=1, keepdims=True)
+
+    @jit
+    def update_fn((V, S)):
+        # X \in [0,1]^{nS x nS}. X[i, j] = 1 if V(s_i) ~= V(s_j).
+        X = sample_using_symmetric_prior(S)
+        # sample an abstraction / grouping (with preference towards 'symmetric' abstractions ).
+        # use to update.
+        return V + lr * np.dot(X, (T(V) - V))
+    return update_fn
 
 def parameterised_value_iteration(mdp, lr):
     T = lambda Q: utils.bellman_optimality_operator(mdp.P, mdp.r, Q, mdp.discount)
