@@ -93,7 +93,8 @@ def thompson_abstraction_value_iteration(mdp, lr):
         return np.max(utils.bellman_operator(mdp.P, mdp.r, V, mdp.discount), axis=1, keepdims=True)
 
     @jit
-    def update_fn((V, S)):
+    def update_fn(X):
+        V, S = X
         # X \in [0,1]^{nS x nS}. X[i, j] = 1 if V(s_i) ~= V(s_j).
         X = sample_using_symmetric_prior(S)
         # sample an abstraction / grouping (with preference towards 'symmetric' abstractions ).

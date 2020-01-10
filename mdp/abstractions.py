@@ -121,6 +121,15 @@ def SARSA(init, M, f):
     # lift
     return np.dot(f.T, np.max(Q_star, axis=1, keepdims=True))
 
+def VI(init, M, f):
+
+    # solve
+    V_init = utils.value_functional(M.P, M.r, init, M.discount)
+    V_star = utils.solve(ss.value_iteration(M, 0.01), V_init)[-1]
+
+    # lift
+    return np.dot(f.T, V_star)
+
 if __name__ == '__main__':
 
     tol = 0.01

@@ -34,12 +34,19 @@ def onoffpolicy_abstraction(mdp, pis):
     ### optimal policy abstraction
     pi_star = utils.solve(ss.policy_iteration(mdp), np.log(init))[-1]
     Q_star = utils.bellman_operator(mdp.P, mdp.r,utils.value_functional(mdp.P, mdp.r, pi_star, mdp.discount), mdp.discount)
-    similar_states = np.sum(np.abs(Q_star[:, None, :] - Q_star[None, :, :]), axis=-1)  # |S| x |S|
+
+    # similar_states = np.sum(np.abs(Q_star[:, None, :] - Q_star[None, :, :]), axis=-1)  # |S| x |S|. preserves optimal policy's value (for all actions)
+    # similar_states = np.abs(np.max(Q_star[:, None, :],axis=-1) - np.max(Q_star[None, :, :],axis=-1))  # |S| x |S|. preserves optimal action's value
+
+    #
+    V = utils.value_functional(mdp.P, mdp.r, init, mdp.discount)
+    similar_states = np.abs(V[None, :, :]-V[:, None, :])[:, :, 0]
+
     optimal_idx, optimal_abstracted_mdp, optimal_f = abs.build_state_abstraction(similar_states, mdp, tol)
 
     mdps = [mdp, optimal_abstracted_mdp]
     names = ['ground', 'optimal_abstracted_mdp']
-    solvers = [abs.Q, abs.SARSA]
+    solvers = [abs.Q, abs.SARSA, abs.VI]
     lifts = [np.eye(mdp.S), optimal_f]
     idxs = [range(mdp.S), optimal_idx]
 
@@ -66,4 +73,8 @@ if __name__ == "__main__":
     for _ in range(10):
         mdp = utils.build_random_mdp(n_states, n_actions, 0.5)
         results = onoffpolicy_abstraction(mdp, pis)
-        print('\nQ', results[-2][-1], 'Sarsa', results[-1][-1])
+
+        n = len(results)
+        print('\n')
+        for i in range(n//2):
+            print(results[n//2+i][-2], results[n//2+i][-1])
