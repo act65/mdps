@@ -2,6 +2,8 @@ import jax.numpy as np
 import numpy.random as rnd
 import matplotlib.pyplot as plt
 
+import numpy
+
 import copy
 import functools
 
@@ -100,6 +102,49 @@ def generate_model_cs():
     print(pi_star)
 
 
+def estimation_err():
+    """
+    Compare using all deterministic policies versus fewer mixed policies.
+    Starts to get interesting in higher dims?
+
+
+
+    """
+    n_states = 4
+    n_actions = 2
+    lr = 0.01
+    discount = 0.5
+
+    dpis = utils.get_deterministic_policies(n_states, n_actions)
+    params = rnd.standard_normal((n_states * n_states * n_actions + n_states * n_actions))
+
+    def value(P, r, pis):
+        return np.array([utils.value_functional(P, r, pi, discount) for pi in pis])  # jax doesnt seem to like me changing the batch size to a vmap?!?
+
+    def loss_fn(params, pis):
+        p_logits, r = parse_model_params(n_states, n_actions, params)
+        return np.sum(value(utils.softmax(p_logits), r, pis)**2)
+
+    dVdp = jit(lambda *x: np.array(grad(loss_fn, 0)(*x))) #,axis=0)
+    det_dVdp = dVdp(params, dpis)
+
+    k_estim_err = []
+    for k in range(n_states, n_actions**n_states+1, n_states//2):
+        print('\n{} det policies. Testing with {}\n'.format(n_actions**n_states, k))
+        diffs = []
+        for _ in range(6):
+            rnd_pis = np.stack([utils.random_det_policy(n_states, n_actions) for _ in range(k)])
+            diffs.append(np.max(np.abs(det_dVdp - dVdp(params, rnd_pis))))
+        k_estim_err.append(numpy.mean(diffs))
+
+
+    plt.plot(range(n_states, n_actions**n_states+1, n_states//2), k_estim_err)
+    plt.xlabel('Number of randomly sampled policies')
+    plt.ylabel('Max error in gradient estimation')
+    plt.show()
+
+
 if __name__ == '__main__':
     # generate_model_iteration()
-    generate_model_cs()
+    # generate_model_cs()
+    estimation_err()

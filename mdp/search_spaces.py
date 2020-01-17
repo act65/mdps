@@ -181,7 +181,7 @@ def model_iteration(mdp, lr, pis):
 
 
     def loss_fn(params):
-        p_logits, r = parse_model_params(mdp, params)
+        p_logits, r = parse_model_params(mdp.S, mdp.A, params)
         return np.sum((V_true(pis) - V_guess(utils.softmax(p_logits), r, pis))**2)
 
     dLdp = grad(loss_fn)

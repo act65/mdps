@@ -74,7 +74,7 @@ def generate_iteration_figures(mdp, pis, iteration_fn, name):
         fig.axes.get_yaxis().set_visible(False)
 
     plt.tight_layout()
-    plt.savefig('figs/iteration-lrs/{}.png'.format(name))
+    plt.savefig('figs/iteration-lrs/0-{}.png'.format(name))
 
 if __name__ =='__main__':
     rnd.seed(41)
