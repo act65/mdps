@@ -75,8 +75,9 @@ def test_value_functional():
             r_pi_calc[s] += pi1[s,a] * r1[s,a]
     # r_pi_calc = [[1.0], [2.0]]
 
-    V_expected1 = np.linalg.inv(np.eye(2) - discount1 * P_pi_calc.T) @ r_pi_calc
+    V_expected1 = np.linalg.inv(np.eye(2) - discount1 * P_pi_calc) @ r_pi_calc    
     assert np.allclose(value_functional(P1, r1, pi1, discount1), V_expected1)
+
 
     # Test Case 2
     P2 = np.array([
@@ -103,7 +104,7 @@ def test_value_functional():
         for a in range(2):
             r_pi_calc2[s] += pi2[s,a] * r2[s,a]
     # r_pi_calc2 = [[10.0], [2.0]]
-    V_expected2 = np.linalg.inv(np.eye(2) - discount2 * P_pi_calc2.T) @ r_pi_calc2
+    V_expected2 = np.linalg.inv(np.eye(2) - discount2 * P_pi_calc2) @ r_pi_calc2
     assert np.allclose(value_functional(P2, r2, pi2, discount2), V_expected2)
 
 
@@ -193,5 +194,3 @@ def test_build_random_mdp():
     assert mdp.r.shape == (n_states, n_actions)
     assert mdp.d0.shape == (n_states, 1)
     assert np.isclose(np.sum(mdp.d0), 1.0)
-
-```

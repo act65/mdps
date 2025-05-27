@@ -13,8 +13,8 @@ def generate_polytope_densities():
     n_states, n_actions = 2, 2
     pis = utils.gen_grid_policies(41)
 
-    nx = 4
-    ny = 5
+    nx = 3
+    ny = 3
     plt.figure(figsize=(16, 16))
 
     for i in range(nx*ny):
