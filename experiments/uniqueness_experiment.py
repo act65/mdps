@@ -23,4 +23,6 @@ if __name__ == '__main__':
     pis = utils.gen_grid_policies(21)
     vs = utils.polytope(P, r, discount, pis)
     plt.scatter(vs[:, 0], vs[:, 1])
-    plt.show()
+    # plt.show() # Replaced with savefig and close
+    plt.savefig('figs/uniqueness_experiment.png')
+    plt.close()

@@ -63,7 +63,8 @@ def generate_pvi_vs_vi(mdp):
     plt.title('VI')
     plt_field(vs, dvis)
 
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
 
 def cts_lr_fields(mdp):
@@ -92,7 +93,8 @@ def cts_lr_fields(mdp):
 
         # plt.title('Pamameterised VI')
     # plt.savefig('figs/lr_limit_{:.3f}.png'.format(lr))
-    plt.savefig('traj-figs/lr_limit_pvi.png', dpi=300)
+    plt.savefig('figs/lr_limit_pvi.png', dpi=300)
+    plt.close()
 
 def lr_field_diffs(mdp):
     """
@@ -110,7 +112,8 @@ def lr_field_diffs(mdp):
     dF = pvi_vector_field(mdp, many_cores, 0.1)/0.1 - pvi_vector_field(mdp, many_cores, 1e-8)/1e-8
     plt_field(vs, dF)
 
-    plt.savefig('field-figs/lr_field_diffs.png', dpi=300)
+    plt.savefig('figs/lr_field_diffs.png', dpi=300)
+    plt.close()
 
 
 ################################################

@@ -58,4 +58,6 @@ if __name__ == '__main__':
         # generate_pi(mdp, c)
     plt.legend()
     plt.colorbar()
-    plt.show()
+    # plt.show() # Replaced with savefig and close
+    plt.savefig('figs/trajectory_experiments_main.png')
+    plt.close()

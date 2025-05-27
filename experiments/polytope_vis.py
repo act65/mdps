@@ -24,7 +24,8 @@ def plot():
 
     plt.title('The value polytope')
 
-    plt.show()
+    plt.savefig('figs/value_polytope_visualization.png')
+    plt.close()
 
 if __name__ == "__main__":
     plot()

@@ -41,7 +41,8 @@ def compare_mdp_lmdp():
     plt.scatter(v_u_star[0, 0], v_u_star[1, 0], c='g', alpha=0.5, marker='x', label='lmdp')
     plt.scatter(v_p[0, 0], v_p[1, 0], c='k', marker='x', alpha=0.5, label='p')
     plt.legend()
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
 def compare_acc():
     n_states, n_actions = 2, 2
@@ -79,7 +80,8 @@ def compare_acc():
 
     print([np.sum(lmdp), np.sum(lmdp_rnd)])
     plt.bar(range(2), [np.sum(lmdp), np.sum(lmdp_rnd)])
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
 
 def lmdp_dynamics():
@@ -132,8 +134,9 @@ def lmdp_field():
     plt.title('Bellman operator')
     plt.quiver(Vs[:, 0], Vs[:, 1], normed_dVs[:, 0], normed_dVs[:,1], np.linalg.norm(dVs, axis=1))
 
-    # plt.savefig('figs/LBO_BO.png')
-    plt.show()
+    plt.savefig('figs/LBO_BO.png')
+    # plt.show() # Replaced with close
+    plt.close()
 
 def mdp_lmdp_optimality():
     n_states, n_actions = 2, 2
@@ -156,7 +159,8 @@ def mdp_lmdp_optimality():
         plt.subplot(n, 2, 2*i+2)
         plt.imshow(P_pi_star)
     plt.savefig('figs/lmdp_mdp_optimal_dynamics.png')
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
 def make_grid_transition_fn(n):
     actions = []
@@ -188,7 +192,8 @@ def test_grid(P):
     G = nx.from_numpy_array(P.sum(axis=-1))
     pos = nx.spring_layout(G, iterations=200)
     nx.draw(G, pos)
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
 def make_goal(P):
     # for each action that takes s to g. give reward.
@@ -211,13 +216,15 @@ def maze_problem():
     G = nx.from_numpy_array(M)
     pos = nx.spring_layout(G, iterations=200)
     nx.draw(G, pos, labels=node_labels, node_color=q, edge_color=M[list(zip(*G.edges()))], cmap=plt.cm.jet)
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
     M = u
     G = nx.from_numpy_array(M)
     pos = nx.spring_layout(G, iterations=200)
     nx.draw(G, pos, labels=node_labels, node_color=q, edge_color=M[list(zip(*G.edges()))], cmap=plt.cm.jet)
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
 if __name__ == "__main__":
     np.random.seed(0)

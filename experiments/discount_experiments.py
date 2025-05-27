@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 import mdp.utils as utils
 
@@ -23,7 +24,8 @@ def hyperbolic_polytope():
     plt.subplot(2, 1, 2)
     V = (1-0.9)*utils.polytope(mdp.P, mdp.r, 0.9, pis)
     plt.scatter(V[:, 0], V[:, 1])
-    plt.show()
+    # plt.show() # Replaced with close
+    plt.close()
 
 
 def generate_discounted_polytopes_forvideo():
@@ -54,7 +56,8 @@ def generate_discounted_polytopes_forvideo():
             fig.axes.get_yaxis().set_visible(False)
 
         plt.tight_layout()
-        plt.savefig('../pictures/figures/discounts/disc{}.png'.format(i))
+        plt.savefig('figs/discount_experiment_disc{}.png'.format(i))
+        plt.close()
 
 def generate_discounted_polytopes():
     n_states = 2
@@ -84,8 +87,9 @@ def generate_discounted_polytopes():
             fig.axes.get_yaxis().set_visible(False)
 
     plt.tight_layout()
-    # plt.savefig('../pictures/figures/discounts.png')
-    plt.show()
+    # plt.savefig('../pictures/figures/discounts.png') # This was commented out
+    # plt.show() # Replaced with close
+    plt.close()
 
 def discount_trajectories():
     """
@@ -116,7 +120,8 @@ def discount_trajectories():
     plt.xlabel('V2. max normed')
     plt.ylabel('V1. max normed')
     plt.title('A random {}-state, {}-action MDP'.format(n_states, n_actions))
-    plt.savefig('../pictures/figures/policy-discount-trajectories.png')
+    plt.savefig('figs/policy_discount_trajectories.png')
+    plt.close()
 
 def discount_partitions():
     """
@@ -145,8 +150,9 @@ def discount_partitions():
     plt.xlabel('Discount')
     plt.ylabel('Cumulative changes to the optimal policy')
 
-    # plt.show()
-    plt.savefig('fig/discount-partitions.png')
+    # plt.show() # Replaced with close
+    plt.savefig('figs/discount_partitions.png')
+    plt.close()
 
 
 if __name__ == '__main__':

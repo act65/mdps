@@ -48,7 +48,8 @@ def generate_snr_map():
     plt.subplot(3, 1, 3)
     plt.title('SNR')
     plt.scatter(Vs[:, 0], Vs[:, 1], c=snr)
-    plt.show()
+    plt.savefig('figs/snr_map.png')
+    plt.close()
 
 
 def est_var_R(mdp, pi, n=60, T=25):
@@ -77,7 +78,8 @@ def emp_est_snr_graph():
         #     print(err)
 
     plt.scatter(hs, vs)
-    plt.show()
+    plt.savefig('figs/empirical_estimated_snr_graph.png')
+    plt.close()
 
 def emp_est_snr_map():
     n_states, n_actions = 2, 2
@@ -99,7 +101,8 @@ def emp_est_snr_map():
     plt.scatter(vals[:, 0], vals[:, 1], c=vars)
     # plt.subplot(3,1,1)
     # plt.scatter(vals[:, 0], vals[:, 0], c=hs)
-    plt.show()
+    plt.savefig('figs/empirical_estimated_snr_map.png')
+    plt.close()
 
 
 if __name__ == "__main__":

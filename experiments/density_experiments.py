@@ -33,8 +33,9 @@ def generate_polytope_densities():
         fig.axes.get_yaxis().set_visible(False)
 
     plt.tight_layout()
-    plt.show()
-    # plt.savefig('figs/polytope_densities.png'.format(i))
+    # plt.show() # Replaced with savefig and close
+    plt.savefig('figs/polytope_densities.png')
+    plt.close()
 
 if __name__ =='__main__':
     generate_polytope_densities()
