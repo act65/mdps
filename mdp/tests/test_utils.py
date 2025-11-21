@@ -6,7 +6,7 @@ from mdp.utils import (
     gen_grid_policies,
     random_policy,
     build_random_mdp,
-    MDP # Assuming MDP class is in utils or accessible
+    MDP
 )
 
 # Test for value_functional
