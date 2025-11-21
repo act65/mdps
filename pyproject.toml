@@ -1,0 +1,15 @@
+[project]
+name = "mdps"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "jax>=0.4.30",
+    "jaxlib>=0.4.30",
+    "matplotlib>=3.9.4",
+    "networkx>=3.2.1",
+    "numpy>=2.0.2",
+    "pytest>=8.4.2",
+    "scipy>=1.13.1",
+]
